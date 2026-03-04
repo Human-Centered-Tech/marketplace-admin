@@ -243,6 +243,17 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
       to: "/sellers",
     },
     {
+      icon: <Buildings />,
+      label: "Directory",
+      to: "/directory",
+      items: [
+        {
+          label: "Pending Verification",
+          to: "/directory/pending",
+        },
+      ],
+    },
+    {
       icon: <ReceiptPercent />,
       label: t("promotions.domain"),
       to: "/promotions",

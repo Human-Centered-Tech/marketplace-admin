@@ -813,6 +813,30 @@ export function getRouteMap({
               ],
             },
             {
+              path: "/directory",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Directory",
+              },
+              children: [
+                {
+                  path: "",
+                  lazy: () =>
+                    import("../../routes/directory/directory-list"),
+                },
+                {
+                  path: "pending",
+                  lazy: () =>
+                    import("../../routes/directory/directory-pending"),
+                },
+                {
+                  path: ":id",
+                  lazy: () =>
+                    import("../../routes/directory/directory-detail"),
+                },
+              ],
+            },
+            {
               path: "/messages",
               errorElement: <ErrorBoundary />,
               handle: {
