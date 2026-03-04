@@ -834,6 +834,92 @@ export function getRouteMap({
                   lazy: () =>
                     import("../../routes/directory/directory-detail"),
                 },
+                {
+                  path: "categories",
+                  lazy: () =>
+                    import("../../routes/directory/directory-categories"),
+                },
+                {
+                  path: "parishes",
+                  lazy: () =>
+                    import("../../routes/directory/directory-parishes"),
+                },
+              ],
+            },
+            {
+              path: "/networking",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Networking",
+              },
+              children: [
+                {
+                  path: "",
+                  lazy: () =>
+                    import("../../routes/networking/networking-events"),
+                },
+                {
+                  path: "subscribers",
+                  lazy: () =>
+                    import("../../routes/networking/networking-subscribers"),
+                },
+                {
+                  path: ":id",
+                  lazy: () =>
+                    import("../../routes/networking/networking-event-detail"),
+                },
+              ],
+            },
+            {
+              path: "/barter",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Barter",
+              },
+              children: [
+                {
+                  path: "",
+                  lazy: () =>
+                    import("../../routes/barter/barter-list"),
+                },
+                {
+                  path: ":id",
+                  lazy: () =>
+                    import("../../routes/barter/barter-detail"),
+                },
+              ],
+            },
+            {
+              path: "/registry",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Gift Registry",
+              },
+              children: [
+                {
+                  index: true,
+                  lazy: () =>
+                    import("../../routes/registry/registry-list"),
+                },
+                {
+                  path: ":id",
+                  lazy: () =>
+                    import("../../routes/registry/registry-detail"),
+                },
+              ],
+            },
+            {
+              path: "/analytics",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Analytics",
+              },
+              children: [
+                {
+                  path: "",
+                  lazy: () =>
+                    import("../../routes/analytics/analytics-overview"),
+                },
               ],
             },
             {

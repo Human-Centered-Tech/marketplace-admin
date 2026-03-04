@@ -210,3 +210,53 @@ export const useDirectoryParishes = (
     ...other,
   }
 }
+
+export const useCreateDirectoryParish = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (body: Record<string, any>) =>
+      sdk.client.fetch("/admin/directory/parishes", {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: directoryParishQueryKeys.all,
+      })
+    },
+  })
+}
+
+export const useUpdateDirectoryParish = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [key: string]: any }) =>
+      sdk.client.fetch(`/admin/directory/parishes/${id}`, {
+        method: "PUT",
+        body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: directoryParishQueryKeys.all,
+      })
+    },
+  })
+}
+
+export const useDeleteDirectoryParish = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      sdk.client.fetch(`/admin/directory/parishes/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: directoryParishQueryKeys.all,
+      })
+    },
+  })
+}

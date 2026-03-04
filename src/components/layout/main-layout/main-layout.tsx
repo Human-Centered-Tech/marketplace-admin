@@ -2,6 +2,9 @@ import {
   BottomToTop,
   BuildingStorefront,
   Buildings,
+  Calendar,
+  ChartBar,
+  Gift,
   ChatBubble,
   ChevronDownMini,
   CogSixTooth,
@@ -251,7 +254,45 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
           label: "Pending Verification",
           to: "/directory/pending",
         },
+        {
+          label: "Categories",
+          to: "/directory/categories",
+        },
+        {
+          label: "Parishes",
+          to: "/directory/parishes",
+        },
       ],
+    },
+    {
+      icon: <Calendar />,
+      label: "Networking",
+      to: "/networking",
+      items: [
+        {
+          label: "Events",
+          to: "/networking",
+        },
+        {
+          label: "Subscribers",
+          to: "/networking/subscribers",
+        },
+      ],
+    },
+    {
+      icon: <Shopping />,
+      label: "Barter",
+      to: "/barter",
+    },
+    {
+      icon: <Gift />,
+      label: "Gift Registry",
+      to: "/registry",
+    },
+    {
+      icon: <ChartBar />,
+      label: "Analytics",
+      to: "/analytics",
     },
     {
       icon: <ReceiptPercent />,
