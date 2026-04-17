@@ -865,6 +865,19 @@ export function getRouteMap({
               ],
             },
             {
+              path: "/moderation-queue",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Moderation Queue",
+              },
+              children: [
+                {
+                  path: "",
+                  lazy: () => import("../../routes/moderation-queue"),
+                },
+              ],
+            },
+            {
               path: "/networking",
               errorElement: <ErrorBoundary />,
               handle: {
