@@ -7,6 +7,7 @@ import {
   useUpdateDirectoryListing,
 } from "../../../hooks/api/directory"
 import { BadgeAssignment } from "./badge-assignment"
+import { ExtendedFieldsEditor } from "./extended-fields"
 
 export const DirectoryDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -223,6 +224,9 @@ export const DirectoryDetail = () => {
 
       {/* Custom badge assignments — available for all listings */}
       <BadgeAssignment listingId={id!} />
+
+      {/* 4/1 extended fields editor — owner interview, devotional, CTA */}
+      <ExtendedFieldsEditor listing={listing} />
     </div>
   )
 }
