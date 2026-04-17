@@ -852,6 +852,19 @@ export function getRouteMap({
               ],
             },
             {
+              path: "/platform-credits",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Platform Credits",
+              },
+              children: [
+                {
+                  path: "",
+                  lazy: () => import("../../routes/platform-credits"),
+                },
+              ],
+            },
+            {
               path: "/networking",
               errorElement: <ErrorBoundary />,
               handle: {
