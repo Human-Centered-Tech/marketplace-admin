@@ -1,17 +1,21 @@
-import { Container, Heading, Text, Badge, Button, Textarea } from "@medusajs/ui"
+import { Container, Heading, Text, Badge, Button, Textarea, Input } from "@medusajs/ui"
 import { useParams, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import {
   useDirectoryListing,
   useVerifyDirectoryListing,
+  useUpdateDirectoryListing,
 } from "../../../hooks/api/directory"
+import { BadgeAssignment } from "./badge-assignment"
 
 export const DirectoryDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useDirectoryListing(id!)
   const verifyMutation = useVerifyDirectoryListing()
+  const updateMutation = useUpdateDirectoryListing()
   const [notes, setNotes] = useState("")
+  const [vendorId, setVendorId] = useState("")
 
   const listing = (data as any)?.listing
 
@@ -110,6 +114,81 @@ export const DirectoryDetail = () => {
         </div>
       </Container>
 
+      {/* Parish Affiliations */}
+      {listing.affiliations?.length > 0 && (
+        <Container>
+          <Heading level="h2" className="mb-4">
+            Parish Affiliations
+          </Heading>
+          <div className="divide-y">
+            {listing.affiliations.map((aff: any) => (
+              <div key={aff.id} className="py-2">
+                <Text className="font-medium">{aff.parish?.name}</Text>
+                <Text className="text-ui-fg-subtle text-sm">
+                  {aff.parish?.diocese} — {aff.parish?.city}, {aff.parish?.state}
+                </Text>
+              </div>
+            ))}
+          </div>
+        </Container>
+      )}
+
+      {/* Marketplace Storefront Link */}
+      <Container>
+        <Heading level="h2" className="mb-4">
+          Marketplace Link
+        </Heading>
+        {listing.vendor_id ? (
+          <div className="flex items-center justify-between">
+            <div>
+              <Text className="text-sm">
+                Linked to vendor: <span className="font-medium">{listing.vendor_id}</span>
+              </Text>
+            </div>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={async () => {
+                await updateMutation.mutateAsync({
+                  id: id!,
+                  vendor_id: null,
+                })
+              }}
+              isLoading={updateMutation.isPending}
+            >
+              Unlink
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Enter vendor/seller ID..."
+              value={vendorId}
+              onChange={(e) => setVendorId(e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              variant="primary"
+              size="small"
+              disabled={!vendorId.trim()}
+              onClick={async () => {
+                await updateMutation.mutateAsync({
+                  id: id!,
+                  vendor_id: vendorId.trim(),
+                })
+                setVendorId("")
+              }}
+              isLoading={updateMutation.isPending}
+            >
+              Link
+            </Button>
+          </div>
+        )}
+        <Text className="text-ui-fg-subtle text-xs mt-2">
+          Links this directory listing to a marketplace vendor storefront.
+        </Text>
+      </Container>
+
       {/* Verification controls */}
       {listing.verification_status === "pending" && (
         <Container>
@@ -141,6 +220,9 @@ export const DirectoryDetail = () => {
           </div>
         </Container>
       )}
+
+      {/* Custom badge assignments — available for all listings */}
+      <BadgeAssignment listingId={id!} />
     </div>
   )
 }

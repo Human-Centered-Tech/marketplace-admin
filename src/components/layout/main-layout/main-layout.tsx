@@ -262,6 +262,10 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
           label: "Parishes",
           to: "/directory/parishes",
         },
+        {
+          label: "Badges",
+          to: "/directory/badges",
+        },
       ],
     },
     {

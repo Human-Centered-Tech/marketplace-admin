@@ -844,6 +844,11 @@ export function getRouteMap({
                   lazy: () =>
                     import("../../routes/directory/directory-parishes"),
                 },
+                {
+                  path: "badges",
+                  lazy: () =>
+                    import("../../routes/directory/directory-badges"),
+                },
               ],
             },
             {

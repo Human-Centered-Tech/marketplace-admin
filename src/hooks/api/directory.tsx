@@ -12,6 +12,10 @@ import { queryKeysFactory } from "../../lib/query-key-factory"
 export const directoryListingQueryKeys = queryKeysFactory("directory-listing")
 export const directoryCategoryQueryKeys = queryKeysFactory("directory-category")
 export const directoryParishQueryKeys = queryKeysFactory("directory-parish")
+export const directoryBadgeQueryKeys = queryKeysFactory("directory-badge")
+export const directoryListingBadgeQueryKeys = queryKeysFactory(
+  "directory-listing-badge"
+)
 
 // Listings
 
@@ -256,6 +260,133 @@ export const useDeleteDirectoryParish = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: directoryParishQueryKeys.all,
+      })
+    },
+  })
+}
+
+// Badges
+
+export const useDirectoryBadges = () => {
+  const { data, ...other } = useQuery({
+    queryKey: directoryBadgeQueryKeys.list(),
+    queryFn: () =>
+      sdk.client.fetch<{ badges: any[] }>("/admin/directory/badges", {
+        method: "GET",
+      }),
+  })
+
+  return {
+    badges: data?.badges,
+    ...other,
+  }
+}
+
+export const useCreateDirectoryBadge = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, any>) =>
+      sdk.client.fetch("/admin/directory/badges", {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: directoryBadgeQueryKeys.all })
+    },
+  })
+}
+
+export const useUpdateDirectoryBadge = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [key: string]: any }) =>
+      sdk.client.fetch(`/admin/directory/badges/${id}`, {
+        method: "PUT",
+        body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: directoryBadgeQueryKeys.all })
+    },
+  })
+}
+
+export const useDeleteDirectoryBadge = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      sdk.client.fetch(`/admin/directory/badges/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: directoryBadgeQueryKeys.all })
+    },
+  })
+}
+
+// Listing-badge assignments
+
+export const useListingBadges = (listingId: string) => {
+  const { data, ...other } = useQuery({
+    queryKey: directoryListingBadgeQueryKeys.detail(listingId),
+    queryFn: () =>
+      sdk.client.fetch<{ badges: any[] }>(
+        `/admin/directory/listings/${listingId}/badges`,
+        { method: "GET" }
+      ),
+    enabled: !!listingId,
+  })
+
+  return {
+    badges: data?.badges,
+    ...other,
+  }
+}
+
+export const useAssignListingBadge = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      listingId,
+      badgeId,
+    }: {
+      listingId: string
+      badgeId: string
+    }) =>
+      sdk.client.fetch(`/admin/directory/listings/${listingId}/badges`, {
+        method: "POST",
+        body: { badge_id: badgeId },
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: directoryListingBadgeQueryKeys.detail(vars.listingId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.detail(vars.listingId),
+      })
+    },
+  })
+}
+
+export const useRemoveListingBadge = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      listingId,
+      badgeId,
+    }: {
+      listingId: string
+      badgeId: string
+    }) =>
+      sdk.client.fetch(`/admin/directory/listings/${listingId}/badges`, {
+        method: "DELETE",
+        body: { badge_id: badgeId },
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: directoryListingBadgeQueryKeys.detail(vars.listingId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.detail(vars.listingId),
       })
     },
   })
