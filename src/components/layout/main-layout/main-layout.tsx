@@ -274,6 +274,11 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
       to: "/platform-credits",
     },
     {
+      icon: <Buildings />,
+      label: "Moderation Queue",
+      to: "/moderation-queue",
+    },
+    {
       icon: <Calendar />,
       label: "Networking",
       to: "/networking",
