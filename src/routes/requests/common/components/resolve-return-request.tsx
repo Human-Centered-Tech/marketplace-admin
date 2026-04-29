@@ -36,7 +36,7 @@ export function ResolveReturnRequestPrompt({
           status,
         },
       });
-      toast.success(`Successfuly ${status}!`);
+      toast.success(`Successfully ${status}!`);
       onSuccess?.();
     } catch {
       toast.error("Error!");

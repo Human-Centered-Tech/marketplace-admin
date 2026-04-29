@@ -36,7 +36,7 @@ export function ResolveRequestPrompt({
           status,
         },
       });
-      toast.success(`Successfuly ${status}!`);
+      toast.success(`Successfully ${status}!`);
       onSuccess?.();
     } catch (e: unknown) {
       toast.error(`Error: ${(e as Error).message}`);
