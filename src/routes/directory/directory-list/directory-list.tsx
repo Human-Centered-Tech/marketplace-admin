@@ -1,4 +1,5 @@
-import { Container, Heading, Text, Badge, Button } from "@medusajs/ui"
+import { Container, Heading, Text, Badge, Button, Input } from "@medusajs/ui"
+import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import {
   useDirectoryListings,
@@ -22,13 +23,32 @@ export const DirectoryList = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const statusFilter = searchParams.get("status") || ""
+  const qParam = searchParams.get("q") || ""
   const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0)
+
+  // Debounced search input — committed to URL after 300ms of inactivity
+  // so we don't fire a request on every keystroke.
+  const [searchInput, setSearchInput] = useState(qParam)
+  useEffect(() => {
+    setSearchInput(qParam)
+  }, [qParam])
+  useEffect(() => {
+    if (searchInput === qParam) return
+    const t = setTimeout(() => {
+      const params: Record<string, string> = {}
+      if (statusFilter) params.status = statusFilter
+      if (searchInput.trim()) params.q = searchInput.trim()
+      setSearchParams(params)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [searchInput])
 
   const query: Record<string, string | number> = {
     offset,
     limit: PAGE_SIZE,
   }
   if (statusFilter) query.verification_status = statusFilter
+  if (qParam) query.q = qParam
   const { listings, count, isLoading } = useDirectoryListings(query)
 
   const total = count ?? 0
@@ -39,6 +59,7 @@ export const DirectoryList = () => {
   const setPage = (nextOffset: number) => {
     const params: Record<string, string> = {}
     if (statusFilter) params.status = statusFilter
+    if (qParam) params.q = qParam
     if (nextOffset > 0) params.offset = String(nextOffset)
     setSearchParams(params)
   }
@@ -46,17 +67,27 @@ export const DirectoryList = () => {
     // Reset to page 0 when status filter changes — the row counts differ.
     const params: Record<string, string> = {}
     if (next) params.status = next
+    if (qParam) params.q = qParam
     setSearchParams(params)
   }
 
   return (
     <Container className="p-0">
-      <div className="flex items-center justify-between p-6 border-b">
-        <div>
-          <Heading level="h1">Directory Listings</Heading>
-          <Text className="text-ui-fg-subtle mt-1">
-            Showing {start}–{end} of {total} listings
-          </Text>
+      <div className="flex flex-col gap-4 p-6 border-b">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <Heading level="h1">Directory Listings</Heading>
+            <Text className="text-ui-fg-subtle mt-1">
+              Showing {start}–{end} of {total} listings
+            </Text>
+          </div>
+          <Input
+            type="search"
+            placeholder="Search business name or email…"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-72"
+          />
         </div>
         <div className="flex gap-2">
           <Button
