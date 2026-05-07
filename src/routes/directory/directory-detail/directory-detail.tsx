@@ -8,6 +8,7 @@ import {
 } from "../../../hooks/api/directory"
 import { BadgeAssignment } from "./badge-assignment"
 import { ExtendedFieldsEditor } from "./extended-fields"
+import { PremiumStatesEditor } from "./premium-states"
 
 export const DirectoryDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -227,6 +228,9 @@ export const DirectoryDetail = () => {
 
       {/* 4/1 extended fields editor — owner interview, devotional, CTA */}
       <ExtendedFieldsEditor listing={listing} />
+
+      {/* Per-state premium banner placement (enterprise tier on storefront) */}
+      <PremiumStatesEditor listing={listing} />
     </div>
   )
 }
