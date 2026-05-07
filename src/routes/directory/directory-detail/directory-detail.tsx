@@ -229,8 +229,11 @@ export const DirectoryDetail = () => {
       {/* 4/1 extended fields editor — owner interview, devotional, CTA */}
       <ExtendedFieldsEditor listing={listing} />
 
-      {/* Per-state premium banner placement (enterprise tier on storefront) */}
-      <PremiumStatesEditor listing={listing} />
+      {/* Per-state premium banner placement — enterprise tier only,
+          since the storefront banner query filters by subscription_tier. */}
+      {listing.subscription_tier === "enterprise" && (
+        <PremiumStatesEditor listing={listing} />
+      )}
     </div>
   )
 }
