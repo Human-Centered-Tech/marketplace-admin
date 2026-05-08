@@ -16,6 +16,7 @@ import {
   ReceiptPercent,
   Shopping,
   ShoppingCart,
+  Sparkles,
   SquaresPlus,
   Tag,
   Users,
@@ -302,6 +303,11 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
       icon: <Gift />,
       label: "Gift Registry",
       to: "/registry",
+    },
+    {
+      icon: <Sparkles />,
+      label: "Gift Guides",
+      to: "/gift-guides",
     },
     {
       icon: <ChartBar />,

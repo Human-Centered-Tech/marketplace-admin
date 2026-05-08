@@ -6,6 +6,7 @@ import { useProduct } from "../../../hooks/api/products";
 import { useExtension } from "../../../providers/extension-provider";
 import { ProductAdditionalAttributeSection } from "./components/product-additional-attribute-section";
 import { ProductAttributeSection } from "./components/product-attribute-section";
+import { ProductFeaturedHomepageSection } from "./components/product-featured-homepage-section";
 import { ProductGeneralSection } from "./components/product-general-section";
 import { ProductMediaSection } from "./components/product-media-section";
 import { ProductOptionSection } from "./components/product-option-section";
@@ -72,6 +73,7 @@ export const ProductDetail = () => {
       </TwoColumnPage.Main>
       <TwoColumnPage.Sidebar>
         <ProductSalesChannelSection product={product} />
+        <ProductFeaturedHomepageSection product={product} />
         <ProductShippingProfileSection product={product} />
         <ProductOrganizationSection product={product} />
         <ProductAttributeSection product={product} />

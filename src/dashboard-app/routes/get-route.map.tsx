@@ -940,6 +940,25 @@ export function getRouteMap({
               ],
             },
             {
+              path: "/gift-guides",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Gift Guides",
+              },
+              children: [
+                {
+                  index: true,
+                  lazy: () =>
+                    import("../../routes/gift-guides/gift-guide-list"),
+                },
+                {
+                  path: ":id",
+                  lazy: () =>
+                    import("../../routes/gift-guides/gift-guide-detail"),
+                },
+              ],
+            },
+            {
               path: "/analytics",
               errorElement: <ErrorBoundary />,
               handle: {
