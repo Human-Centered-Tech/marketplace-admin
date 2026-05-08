@@ -189,8 +189,8 @@ export const PlatformCredits = () => {
             </div>
           </div>
           <Text className="text-ui-fg-subtle text-xs mt-3">
-            Each code is a single-use Medusa promotion linked to the
-            selected campaign. View or edit individual codes on the{" "}
+            Each code is a single-use promotion linked to the selected
+            campaign. View or edit individual codes on the{" "}
             <a href="/promotions" className="underline">
               Promotions
             </a>{" "}
