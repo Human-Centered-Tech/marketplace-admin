@@ -16,6 +16,7 @@ import {
   useDeleteGiftGuide,
   type GiftGuide,
 } from "../../../hooks/api/gift-guides"
+import { HeroImageInput } from "../components/hero-image-input"
 
 function isoDateInput(value?: string | null): string {
   if (!value) return ""
@@ -176,12 +177,10 @@ export const GiftGuideDetail = () => {
               />
             </div>
             <div>
-              <Text className="font-medium mb-1 text-sm">Hero Image URL</Text>
-              <Input
+              <Text className="font-medium mb-1 text-sm">Hero Image</Text>
+              <HeroImageInput
                 value={form.hero_image}
-                onChange={(e) =>
-                  setForm({ ...form, hero_image: e.target.value })
-                }
+                onChange={(url) => setForm({ ...form, hero_image: url })}
               />
             </div>
             <div>

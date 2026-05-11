@@ -9,6 +9,7 @@ import {
 import { BadgeAssignment } from "./badge-assignment"
 import { ExtendedFieldsEditor } from "./extended-fields"
 import { PremiumStatesEditor } from "./premium-states"
+import { FeaturedHomepageSection } from "./featured-homepage-section"
 
 export const DirectoryDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -222,6 +223,9 @@ export const DirectoryDetail = () => {
           </div>
         </Container>
       )}
+
+      {/* Homepage Featured Services toggle */}
+      <FeaturedHomepageSection listingId={id!} />
 
       {/* Custom badge assignments — available for all listings */}
       <BadgeAssignment listingId={id!} />

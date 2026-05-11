@@ -6,6 +6,7 @@ import {
   useCreateGiftGuide,
   type GiftGuide,
 } from "../../../hooks/api/gift-guides"
+import { HeroImageInput } from "../components/hero-image-input"
 
 const blankForm = {
   slug: "",
@@ -134,13 +135,10 @@ export const GiftGuideList = () => {
                 />
               </div>
               <div>
-                <Text className="font-medium mb-1 text-sm">Hero Image URL</Text>
-                <Input
-                  placeholder="/images/hero/easter.jpg"
+                <Text className="font-medium mb-1 text-sm">Hero Image</Text>
+                <HeroImageInput
                   value={form.hero_image}
-                  onChange={(e) =>
-                    setForm({ ...form, hero_image: e.target.value })
-                  }
+                  onChange={(url) => setForm({ ...form, hero_image: url })}
                 />
               </div>
               <div>
