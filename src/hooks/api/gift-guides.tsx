@@ -103,3 +103,58 @@ export const useDeleteGiftGuide = () => {
     },
   })
 }
+
+export type GiftGuideProductsResponse = {
+  products: Array<{
+    id: string
+    title: string
+    handle?: string
+    thumbnail?: string | null
+    status?: string
+    tags?: Array<{ id: string; value: string }>
+  }>
+  guide_tags: string[]
+}
+
+export const useGiftGuideProducts = (id: string) => {
+  return useQuery({
+    queryKey: [...giftGuideQueryKeys.detail(id), "products"],
+    queryFn: () =>
+      sdk.client.fetch<GiftGuideProductsResponse>(
+        `/admin/gift-guides/${id}/products`,
+        { method: "GET" }
+      ),
+  })
+}
+
+export const useAddGiftGuideProduct = (id: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (productId: string) =>
+      sdk.client.fetch(`/admin/gift-guides/${id}/products`, {
+        method: "POST",
+        body: { product_id: productId },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...giftGuideQueryKeys.detail(id), "products"],
+      })
+    },
+  })
+}
+
+export const useRemoveGiftGuideProduct = (id: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (productId: string) =>
+      sdk.client.fetch(
+        `/admin/gift-guides/${id}/products/${productId}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...giftGuideQueryKeys.detail(id), "products"],
+      })
+    },
+  })
+}

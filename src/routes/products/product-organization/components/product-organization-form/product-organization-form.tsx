@@ -12,6 +12,7 @@ import {
   useExtendableForm,
 } from "../../../../../dashboard-app"
 import { useUpdateProduct } from "../../../../../hooks/api/products"
+import { useCreateProductTag } from "../../../../../hooks/api/tags"
 import { useComboboxData } from "../../../../../hooks/use-combobox-data"
 import { sdk } from "../../../../../lib/client"
 import { useExtension } from "../../../../../providers/extension-provider"
@@ -81,6 +82,7 @@ export const ProductOrganizationForm = ({
   })
 
   const { mutateAsync, isPending } = useUpdateProduct(product.id)
+  const createTag = useCreateProductTag()
 
   const handleSubmit = form.handleSubmit(async (data) => {
     await mutateAsync(
@@ -190,6 +192,23 @@ export const ProductOrganizationForm = ({
                         options={tags.options}
                         onSearchValueChange={tags.onSearchValueChange}
                         searchValue={tags.searchValue}
+                        onCreateOption={async (value) => {
+                          // Combobox bug: clicking the "clear all" chip X
+                          // fires this with an empty array, not a typed
+                          // string. Bail.
+                          if (typeof value !== "string" || !value.trim())
+                            return
+                          try {
+                            const { product_tag } = await createTag.mutateAsync({
+                              value,
+                            })
+                            const current = (field.value as string[]) ?? []
+                            field.onChange([...current, product_tag.id])
+                            tags.onSearchValueChange?.("")
+                          } catch (e: any) {
+                            toast.error(e?.message || "Failed to create tag")
+                          }
+                        }}
                       />
                     </Form.Control>
                     <Form.ErrorMessage />

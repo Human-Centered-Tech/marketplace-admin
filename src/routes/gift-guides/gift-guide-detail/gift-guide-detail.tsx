@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   Container,
@@ -16,7 +16,12 @@ import {
   useDeleteGiftGuide,
   type GiftGuide,
 } from "../../../hooks/api/gift-guides"
+import { useCreateProductTag } from "../../../hooks/api/tags"
+import { Combobox } from "../../../components/inputs/combobox"
+import { useComboboxData } from "../../../hooks/use-combobox-data"
+import { sdk } from "../../../lib/client"
 import { HeroImageInput } from "../components/hero-image-input"
+import { GiftGuideProductsSection } from "./components/gift-guide-products-section"
 
 function isoDateInput(value?: string | null): string {
   if (!value) return ""
@@ -38,12 +43,37 @@ export const GiftGuideDetail = () => {
     lede: "",
     hero_image: "",
     category_handle: "",
-    tags: "",
+    tags: [] as string[],
     sort_order: 0,
     featured: false,
     active_from: "",
     active_until: "",
   })
+
+  const tagOptions = useComboboxData({
+    queryKey: ["product_tags"],
+    queryFn: (params) => sdk.admin.productTag.list(params),
+    getOptions: (data) =>
+      data.product_tags.map((tag) => ({
+        label: tag.value,
+        // Guide stores tag *values* (strings), not IDs — keep the combobox
+        // value in that same shape so the form maps 1:1 to guide.tags.
+        value: tag.value,
+      })),
+  })
+
+  // Ensure currently-selected tag values stay visible as chips even if
+  // they haven't shown up in tagOptions yet (paginated fetch) or don't
+  // have a product_tag row at all (legacy/stale data).
+  const tagComboOptions = useMemo(() => {
+    const seen = new Set(tagOptions.options.map((o) => o.value))
+    const extras = form.tags
+      .filter((v) => !seen.has(v))
+      .map((v) => ({ label: v, value: v }))
+    return [...tagOptions.options, ...extras]
+  }, [tagOptions.options, form.tags])
+
+  const createTag = useCreateProductTag()
 
   useEffect(() => {
     const guide = (data as any)?.gift_guide as GiftGuide | undefined
@@ -55,7 +85,7 @@ export const GiftGuideDetail = () => {
       lede: guide.lede ?? "",
       hero_image: guide.hero_image ?? "",
       category_handle: guide.category_handle ?? "",
-      tags: (guide.tags ?? []).join(", "),
+      tags: guide.tags ?? [],
       sort_order: guide.sort_order ?? 0,
       featured: !!guide.featured,
       active_from: isoDateInput(guide.active_from),
@@ -64,10 +94,6 @@ export const GiftGuideDetail = () => {
   }, [data])
 
   const handleSave = async () => {
-    const tags = form.tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean)
     try {
       await updateMutation.mutateAsync({
         slug: form.slug,
@@ -76,7 +102,7 @@ export const GiftGuideDetail = () => {
         lede: form.lede || null,
         hero_image: form.hero_image || null,
         category_handle: form.category_handle || null,
-        tags: tags.length ? tags : null,
+        tags: form.tags.length ? form.tags : null,
         sort_order: Number(form.sort_order) || 0,
         featured: form.featured,
         active_from: form.active_from || null,
@@ -184,15 +210,33 @@ export const GiftGuideDetail = () => {
               />
             </div>
             <div>
-              <Text className="font-medium mb-1 text-sm">
-                Tags (comma-separated)
-              </Text>
-              <Input
+              <Text className="font-medium mb-1 text-sm">Tags</Text>
+              <Combobox
+                multiple
                 value={form.tags}
-                onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                onChange={(v) =>
+                  setForm({ ...form, tags: (v as string[]) ?? [] })
+                }
+                options={tagComboOptions}
+                searchValue={tagOptions.searchValue}
+                onSearchValueChange={tagOptions.onSearchValueChange}
+                fetchNextPage={tagOptions.fetchNextPage}
+                onCreateOption={async (value) => {
+                  // Combobox bug: clicking the "clear all" chip X fires
+                  // this with an empty array, not a typed string. Bail.
+                  if (typeof value !== "string" || !value.trim()) return
+                  try {
+                    await createTag.mutateAsync({ value })
+                    setForm((f) => ({ ...f, tags: [...f.tags, value] }))
+                    tagOptions.onSearchValueChange?.("")
+                  } catch (e: any) {
+                    toast.error(e?.message || "Failed to create tag")
+                  }
+                }}
               />
               <Text className="text-ui-fg-subtle text-xs mt-1">
-                Products with any of these tag values appear in the guide.
+                Products with any of these tags appear in the guide. Start
+                typing to pick an existing tag, or create a new one.
               </Text>
             </div>
             <div>
@@ -255,6 +299,8 @@ export const GiftGuideDetail = () => {
           </div>
         </div>
       </Container>
+
+      <GiftGuideProductsSection guideId={id!} />
     </div>
   )
 }
