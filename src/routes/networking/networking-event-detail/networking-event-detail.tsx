@@ -52,6 +52,7 @@ export const NetworkingEventDetail = () => {
         : "",
       duration_minutes: event.duration_minutes || 60,
       max_participants: event.max_participants || 20,
+      event_type: event.event_type || "general",
     })
     setEditing(true)
   }
@@ -88,6 +89,9 @@ export const NetworkingEventDetail = () => {
             </Text>
           </div>
           <div className="flex gap-2">
+            {event.event_type === "featured" && (
+              <Badge color="purple">Featured</Badge>
+            )}
             <Badge color={statusColors[event.status] || "grey"}>
               {event.status}
             </Badge>
@@ -215,6 +219,43 @@ export const NetworkingEventDetail = () => {
                     })
                   }
                 />
+              </div>
+            </div>
+            <div className="mb-4">
+              <Text className="font-medium mb-1 text-sm">Event Type</Text>
+              <div className="flex gap-2">
+                {(
+                  [
+                    {
+                      value: "general",
+                      label: "General",
+                      hint: "Open to all logged-in customers",
+                    },
+                    {
+                      value: "featured",
+                      label: "Featured",
+                      hint: "Restricted to Featured + Enterprise tier vendors",
+                    },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() =>
+                      setForm({ ...form, event_type: opt.value })
+                    }
+                    className={`flex-1 text-left border rounded-md px-3 py-2 transition-colors ${
+                      form.event_type === opt.value
+                        ? "border-ui-fg-interactive bg-ui-bg-base-pressed"
+                        : "border-ui-border-base hover:bg-ui-bg-subtle"
+                    }`}
+                  >
+                    <Text className="font-medium text-sm">{opt.label}</Text>
+                    <Text className="text-ui-fg-subtle text-xs">
+                      {opt.hint}
+                    </Text>
+                  </button>
+                ))}
               </div>
             </div>
             <div className="mb-4">
