@@ -24,6 +24,7 @@ export const NetworkingEvents = () => {
     event_date: "",
     duration_minutes: 60,
     max_participants: 20,
+    event_type: "general" as "general" | "featured",
   })
 
   const { events, count, isLoading } = useNetworkingEvents(
@@ -39,7 +40,14 @@ export const NetworkingEvents = () => {
       max_participants: Number(form.max_participants),
     })
     setShowCreate(false)
-    setForm({ title: "", description: "", event_date: "", duration_minutes: 60, max_participants: 20 })
+    setForm({
+      title: "",
+      description: "",
+      event_date: "",
+      duration_minutes: 60,
+      max_participants: 20,
+      event_type: "general",
+    })
   }
 
   return (
@@ -124,6 +132,43 @@ export const NetworkingEvents = () => {
               </div>
             </div>
             <div className="mb-4">
+              <Text className="font-medium mb-1 text-sm">Event Type</Text>
+              <div className="flex gap-2">
+                {(
+                  [
+                    {
+                      value: "general",
+                      label: "General",
+                      hint: "Open to all logged-in customers",
+                    },
+                    {
+                      value: "featured",
+                      label: "Featured",
+                      hint: "Restricted to Featured + Enterprise tier vendors",
+                    },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() =>
+                      setForm({ ...form, event_type: opt.value })
+                    }
+                    className={`flex-1 text-left border rounded-md px-3 py-2 transition-colors ${
+                      form.event_type === opt.value
+                        ? "border-ui-fg-interactive bg-ui-bg-base-pressed"
+                        : "border-ui-border-base hover:bg-ui-bg-subtle"
+                    }`}
+                  >
+                    <Text className="font-medium text-sm">{opt.label}</Text>
+                    <Text className="text-ui-fg-subtle text-xs">
+                      {opt.hint}
+                    </Text>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mb-4">
               <Text className="font-medium mb-1 text-sm">Description</Text>
               <Textarea
                 placeholder="Event description..."
@@ -169,6 +214,9 @@ export const NetworkingEvents = () => {
                   <Text className="text-ui-fg-subtle text-xs">
                     {event.rsvp_count ?? 0} RSVPs
                   </Text>
+                  {event.event_type === "featured" && (
+                    <Badge color="purple">Featured</Badge>
+                  )}
                   <Badge color={statusColors[event.status] || "grey"}>
                     {event.status}
                   </Badge>
