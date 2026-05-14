@@ -222,8 +222,8 @@ export const NetworkingEventDetail = () => {
               </div>
             </div>
             <div className="mb-4">
-              <Text className="font-medium mb-1 text-sm">Event Type</Text>
-              <div className="flex gap-2">
+              <Text className="font-medium mb-2 text-sm">Event Type</Text>
+              <div className="flex flex-col gap-2">
                 {(
                   [
                     {
@@ -238,23 +238,27 @@ export const NetworkingEventDetail = () => {
                     },
                   ] as const
                 ).map((opt) => (
-                  <button
+                  <label
                     key={opt.value}
-                    type="button"
-                    onClick={() =>
-                      setForm({ ...form, event_type: opt.value })
-                    }
-                    className={`flex-1 text-left border rounded-md px-3 py-2 transition-colors ${
-                      form.event_type === opt.value
-                        ? "border-ui-fg-interactive bg-ui-bg-base-pressed"
-                        : "border-ui-border-base hover:bg-ui-bg-subtle"
-                    }`}
+                    className="flex items-start gap-2 cursor-pointer"
                   >
-                    <Text className="font-medium text-sm">{opt.label}</Text>
-                    <Text className="text-ui-fg-subtle text-xs">
-                      {opt.hint}
-                    </Text>
-                  </button>
+                    <input
+                      type="radio"
+                      name="event_type"
+                      value={opt.value}
+                      checked={form.event_type === opt.value}
+                      onChange={() =>
+                        setForm({ ...form, event_type: opt.value })
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <Text className="font-medium text-sm">{opt.label}</Text>
+                      <Text className="text-ui-fg-subtle text-xs">
+                        {opt.hint}
+                      </Text>
+                    </div>
+                  </label>
                 ))}
               </div>
             </div>
@@ -292,24 +296,88 @@ export const NetworkingEventDetail = () => {
       {event.rsvps && event.rsvps.length > 0 && (
         <Container>
           <Heading level="h2" className="mb-4">
-            RSVPs
+            RSVPs ({event.rsvps.length})
           </Heading>
           <div className="divide-y">
-            {(event.rsvps as any[]).map((rsvp: any) => (
-              <div
-                key={rsvp.id}
-                className="flex items-center justify-between py-2"
-              >
-                <div>
-                  <Text className="font-medium text-sm">
-                    {rsvp.customer_id}
-                  </Text>
+            {(event.rsvps as any[]).map((rsvp: any) => {
+              const c = rsvp.customer
+              const fullName =
+                c && (c.first_name || c.last_name)
+                  ? [c.first_name, c.last_name].filter(Boolean).join(" ")
+                  : null
+              const primaryLabel = fullName || c?.email || rsvp.customer_id
+              const secondaryLabel =
+                fullName && c?.email ? c.email : null
+              const tierColor: Record<string, "purple" | "green" | "grey"> = {
+                enterprise: "purple",
+                featured: "purple",
+                verified: "green",
+              }
+              const planLabel = c?.networking_plan
+                ? c.networking_status === "gifted"
+                  ? "Gifted"
+                  : c.networking_plan === "annual"
+                    ? "Annual"
+                    : "Monthly"
+                : null
+              return (
+                <div
+                  key={rsvp.id}
+                  className="flex items-center justify-between py-2 gap-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <Text className="font-medium text-sm truncate">
+                      {primaryLabel}
+                    </Text>
+                    {c?.business_name && (
+                      <Text className="text-ui-fg-subtle text-xs truncate">
+                        {c.business_name}
+                        {c.location ? ` · ${c.location}` : ""}
+                      </Text>
+                    )}
+                    {!c?.business_name && c?.location && (
+                      <Text className="text-ui-fg-subtle text-xs truncate">
+                        {c.location}
+                      </Text>
+                    )}
+                    {secondaryLabel && (
+                      <Text className="text-ui-fg-subtle text-xs truncate">
+                        {secondaryLabel}
+                      </Text>
+                    )}
+                    {c && !c.has_account && (
+                      <Text className="text-ui-fg-subtle text-xs italic">
+                        Guest (no account)
+                      </Text>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {planLabel && (
+                      <Badge
+                        color={
+                          c?.networking_status === "gifted" ? "orange" : "blue"
+                        }
+                      >
+                        {planLabel}
+                      </Badge>
+                    )}
+                    {c?.directory_tier && (
+                      <Badge color={tierColor[c.directory_tier] || "grey"}>
+                        {c.directory_tier}
+                      </Badge>
+                    )}
+                    <Badge color={rsvp.status === "confirmed" ? "green" : "grey"}>
+                      {rsvp.status}
+                    </Badge>
+                    {rsvp.created_at && (
+                      <Text className="text-ui-fg-subtle text-xs whitespace-nowrap">
+                        RSVP'd {new Date(rsvp.created_at).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </div>
                 </div>
-                <Badge color={rsvp.status === "confirmed" ? "green" : "grey"}>
-                  {rsvp.status}
-                </Badge>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </Container>
       )}
