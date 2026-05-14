@@ -132,8 +132,8 @@ export const NetworkingEvents = () => {
               </div>
             </div>
             <div className="mb-4">
-              <Text className="font-medium mb-1 text-sm">Event Type</Text>
-              <div className="flex gap-2">
+              <Text className="font-medium mb-2 text-sm">Event Type</Text>
+              <div className="flex flex-col gap-2">
                 {(
                   [
                     {
@@ -148,23 +148,27 @@ export const NetworkingEvents = () => {
                     },
                   ] as const
                 ).map((opt) => (
-                  <button
+                  <label
                     key={opt.value}
-                    type="button"
-                    onClick={() =>
-                      setForm({ ...form, event_type: opt.value })
-                    }
-                    className={`flex-1 text-left border rounded-md px-3 py-2 transition-colors ${
-                      form.event_type === opt.value
-                        ? "border-ui-fg-interactive bg-ui-bg-base-pressed"
-                        : "border-ui-border-base hover:bg-ui-bg-subtle"
-                    }`}
+                    className="flex items-start gap-2 cursor-pointer"
                   >
-                    <Text className="font-medium text-sm">{opt.label}</Text>
-                    <Text className="text-ui-fg-subtle text-xs">
-                      {opt.hint}
-                    </Text>
-                  </button>
+                    <input
+                      type="radio"
+                      name="event_type"
+                      value={opt.value}
+                      checked={form.event_type === opt.value}
+                      onChange={() =>
+                        setForm({ ...form, event_type: opt.value })
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <Text className="font-medium text-sm">{opt.label}</Text>
+                      <Text className="text-ui-fg-subtle text-xs">
+                        {opt.hint}
+                      </Text>
+                    </div>
+                  </label>
                 ))}
               </div>
             </div>
