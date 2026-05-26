@@ -51,22 +51,16 @@ export default defineConfig(({ mode }) => {
       __STOREFRONT_URL__: JSON.stringify(STOREFRONT_URL),
       __B2B_PANEL__: JSON.stringify(B2B_PANEL),
     },
+    // Served in production via the Vite dev server (`vite`, see package.json
+    // `start`) — mirroring the vendor dashboard, which serves the same way and
+    // works on Railway. The dev server uses this `server` block (binds the
+    // Railway PORT via the CLI flag, host: true, allowedHosts from the deploy
+    // domain). Raw `vite preview` returned a Railway 502 here.
     server: {
       host: true,
       port: PORT,
       open: false,
       allowedHosts: PUBLIC_BASE_URL ? [PUBLIC_BASE_URL.replace('https://', '').replace('http://', '').split('/')[0]] : [],
-    },
-    // Production serve runs `vite preview` on Railway. Vite 5.4.12+ enforces a
-    // host allowlist on the preview server too, and an explicit list blocks
-    // any host not in it — including Railway's internal health-probe host —
-    // which makes Railway mark the instance unhealthy and serve a 502. The
-    // admin sits behind Railway's reverse proxy and a login, so allow all
-    // hosts here (Vite's recommended setting when behind a trusted proxy).
-    preview: {
-      host: true,
-      port: PORT,
-      allowedHosts: true,
     },
   };
 });
