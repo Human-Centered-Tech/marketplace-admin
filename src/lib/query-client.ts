@@ -1,6 +1,10 @@
 import { QueryClient } from "@tanstack/react-query"
 
-export const MEDUSA_BACKEND_URL = __BACKEND_URL__ ?? "/"
+const runtimeConfig =
+  (typeof window !== "undefined" && window.__RUNTIME_CONFIG__) || {}
+
+export const MEDUSA_BACKEND_URL =
+  runtimeConfig.backendUrl || __BACKEND_URL__ || "/"
 
 export const queryClient = new QueryClient({
   defaultOptions: {
