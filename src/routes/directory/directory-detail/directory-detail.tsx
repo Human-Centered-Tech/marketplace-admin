@@ -7,6 +7,7 @@ import {
   useUpdateDirectoryListing,
 } from "../../../hooks/api/directory"
 import { BadgeAssignment } from "./badge-assignment"
+import { CategoryEditor } from "./category-editor"
 import { ExtendedFieldsEditor } from "./extended-fields"
 import { PremiumStatesEditor } from "./premium-states"
 import { FeaturedHomepageSection } from "./featured-homepage-section"
@@ -223,6 +224,10 @@ export const DirectoryDetail = () => {
           </div>
         </Container>
       )}
+
+      {/* Category assignment — change which directory category this
+          listing appears under. */}
+      <CategoryEditor listing={listing} />
 
       {/* Homepage Featured Services toggle */}
       <FeaturedHomepageSection listingId={id!} />
