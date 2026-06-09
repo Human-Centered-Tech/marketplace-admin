@@ -64,7 +64,15 @@ export default defineConfig(({ mode }) => {
     preview: {
       host: true,
       port: PORT,
-      allowedHosts: PUBLIC_BASE_URL ? [PUBLIC_BASE_URL.replace('https://', '').replace('http://', '').split('/')[0]] : [],
+      // Allow all hosts. Vite 5.4+ blocks requests whose Host header isn't in
+      // allowedHosts with a 403 ("Blocked request"). Deriving the list from
+      // PUBLIC_BASE_URL broke Railway deploys: when the env var is unset at
+      // build time the list is [] (blocks everything), and even when set it
+      // omits Railway's internal healthcheck host — so the deploy healthcheck
+      // gets a 403 and fails. The admin is auth-gated and serves only static
+      // files (no SSR/proxy), so disabling host-checking carries no
+      // DNS-rebinding risk.
+      allowedHosts: true,
     },
   };
 });
