@@ -10,6 +10,7 @@ import { BadgeAssignment } from "./badge-assignment"
 import { CategoryEditor } from "./category-editor"
 import { ExtendedFieldsEditor } from "./extended-fields"
 import { PremiumStatesEditor } from "./premium-states"
+import { ServicedStatesEditor } from "./serviced-states"
 import { FeaturedHomepageSection } from "./featured-homepage-section"
 
 export const DirectoryDetail = () => {
@@ -237,6 +238,10 @@ export const DirectoryDetail = () => {
 
       {/* 4/1 extended fields editor — owner interview, devotional, CTA */}
       <ExtendedFieldsEditor listing={listing} />
+
+      {/* Service area — which states this listing serves; drives the
+          /us/directory state filter. Available for all tiers. */}
+      <ServicedStatesEditor listing={listing} />
 
       {/* Per-state premium banner placement — enterprise tier only,
           since the storefront banner query filters by subscription_tier. */}
