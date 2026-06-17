@@ -5,7 +5,13 @@ import { useTranslation } from "react-i18next"
 import { _DataTable } from "../../../../../components/table/data-table/data-table"
 import { useOrders } from "../../../../../hooks/api/orders"
 import { useOrderTableColumns } from "../../../../../hooks/table/columns/use-order-table-columns"
-import { useOrderTableFilters } from "./use-order-table-filters"
+// Legacy _DataTable (used on this non-configurable path) expects the legacy
+// `Filter` shape (keyed by `key`, type "select"/"date"). The sibling
+// "./use-order-table-filters" returns the @medusajs/ui helper shape
+// (keyed by `id`, type "multiselect") for the new ConfigurableDataTable —
+// feeding that to _DataTable rendered no value picker and broke Add filter.
+// Use the legacy-shaped hook here (as the customer/seller order tables do).
+import { useOrderTableFilters } from "../../../../../hooks/table/filters/use-order-table-filters"
 import { useOrderTableQuery } from "../../../../../hooks/table/query/use-order-table-query"
 import { useDataTable } from "../../../../../hooks/use-data-table"
 import { useFeatureFlag } from "../../../../../providers/feature-flag-provider"
