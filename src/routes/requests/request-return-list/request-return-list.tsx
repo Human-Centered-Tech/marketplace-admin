@@ -44,6 +44,10 @@ export const OrderReturnRequestsPage = () => {
     status: currentFilter !== "" ? currentFilter : undefined,
   });
 
+  // Guard against an undefined count (the data source can return no count),
+  // which otherwise rendered "NaN of undefined results" / "1 of NaN pages".
+  const safeCount = count ?? requests?.length ?? 0;
+
   return (
     <Container>
       <div className="flex items-center justify-between px-6 py-4">
@@ -109,7 +113,7 @@ export const OrderReturnRequestsPage = () => {
           </Table.Body>
         </Table>
         <Table.Pagination
-          canNextPage={PAGE_SIZE * (currentPage + 1) < count!}
+          canNextPage={PAGE_SIZE * (currentPage + 1) < safeCount}
           canPreviousPage={currentPage > 0}
           previousPage={() => {
             setCurrentPage(currentPage - 1);
@@ -117,8 +121,8 @@ export const OrderReturnRequestsPage = () => {
           nextPage={() => {
             setCurrentPage(currentPage + 1);
           }}
-          count={count!}
-          pageCount={Math.ceil(count! / PAGE_SIZE)}
+          count={safeCount}
+          pageCount={Math.ceil(safeCount / PAGE_SIZE)}
           pageIndex={currentPage}
           pageSize={PAGE_SIZE}
         />

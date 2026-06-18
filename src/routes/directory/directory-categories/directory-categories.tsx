@@ -71,7 +71,9 @@ export const DirectoryCategories = () => {
         <div>
           <Heading level="h1">Directory Categories</Heading>
           <Text className="text-ui-fg-subtle mt-1">
-            {count ?? 0} categories total
+            {/* The backend list route doesn't return a `count`, so fall back
+                to the number of rows actually rendered (was always "0"). */}
+            {count ?? categories?.length ?? 0} categories total
           </Text>
         </div>
         <Button
