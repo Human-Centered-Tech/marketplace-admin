@@ -1,7 +1,7 @@
 import type { HttpTypes } from "@medusajs/types";
 
 import { t } from "i18next";
-import { Outlet, type RouteObject, type UIMatch } from "react-router-dom";
+import { Navigate, Outlet, type RouteObject, type UIMatch } from "react-router-dom";
 
 import { ProtectedRoute } from "@components/authentication/protected-route";
 import { MainLayout } from "@components/layout/main-layout";
@@ -634,6 +634,13 @@ export function getRouteMap({
                 breadcrumb: () => t("requests.domain"),
               },
               children: [
+                // Hitting /requests directly rendered a blank page (no index
+                // route, so nothing filled the layout Outlet). Redirect to the
+                // first sub-tab, mirroring how /settings handles its index.
+                {
+                  index: true,
+                  element: <Navigate to="seller" replace />,
+                },
                 {
                   path: "seller",
                   handle: {
