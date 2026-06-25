@@ -39,10 +39,13 @@ export const GiftGuideDetail = () => {
   const [form, setForm] = useState({
     slug: "",
     title: "",
+    short_name: "",
+    guide_number: "",
     subtitle: "",
     lede: "",
     hero_image: "",
     category_handle: "",
+    status: "published" as "draft" | "published" | "archived",
     tags: [] as string[],
     sort_order: 0,
     featured: false,
@@ -81,10 +84,13 @@ export const GiftGuideDetail = () => {
     setForm({
       slug: guide.slug ?? "",
       title: guide.title ?? "",
+      short_name: guide.short_name ?? "",
+      guide_number: guide.guide_number ?? "",
       subtitle: guide.subtitle ?? "",
       lede: guide.lede ?? "",
       hero_image: guide.hero_image ?? "",
       category_handle: guide.category_handle ?? "",
+      status: guide.status ?? "published",
       // Hide the slug "anchor" tag from the editable list (it's always kept on
       // save, so editing the rest can't orphan the guide's products).
       tags: (guide.tags ?? []).filter((t) => t !== guide.slug),
@@ -100,10 +106,13 @@ export const GiftGuideDetail = () => {
       await updateMutation.mutateAsync({
         slug: form.slug,
         title: form.title,
+        short_name: form.short_name || null,
+        guide_number: form.guide_number || null,
         subtitle: form.subtitle || null,
         lede: form.lede || null,
         hero_image: form.hero_image || null,
         category_handle: form.category_handle || null,
+        status: form.status,
         // Always persist the slug as a tag — the stable "membership" anchor
         // that this guide's products are tagged with. Without it, editing the
         // tag list would orphan the guide's products. Extra tags are additive.
@@ -196,6 +205,49 @@ export const GiftGuideDetail = () => {
               <Input
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <Text className="font-medium mb-1 text-sm">Status</Text>
+              <select
+                value={form.status}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    status: e.target.value as
+                      | "draft"
+                      | "published"
+                      | "archived",
+                  })
+                }
+                className="bg-ui-bg-field border-ui-border-base text-ui-fg-base h-8 w-full rounded-md border px-2 text-sm"
+              >
+                <option value="published">Published (live)</option>
+                <option value="draft">Draft (hidden)</option>
+                <option value="archived">Archived (hidden)</option>
+              </select>
+              <Text className="text-ui-fg-subtle text-xs mt-1">
+                Only Published guides appear on the storefront.
+              </Text>
+            </div>
+            <div>
+              <Text className="font-medium mb-1 text-sm">Short name</Text>
+              <Input
+                value={form.short_name}
+                placeholder="Postpartum Guide"
+                onChange={(e) =>
+                  setForm({ ...form, short_name: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Text className="font-medium mb-1 text-sm">Guide number</Text>
+              <Input
+                value={form.guide_number}
+                placeholder="No. 001"
+                onChange={(e) =>
+                  setForm({ ...form, guide_number: e.target.value })
+                }
               />
             </div>
             <div>

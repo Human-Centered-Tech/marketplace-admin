@@ -15,10 +15,13 @@ export type GiftGuide = {
   id: string
   slug: string
   title: string
+  short_name?: string | null
+  guide_number?: string | null
   subtitle?: string | null
   lede?: string | null
   hero_image?: string | null
   category_handle?: string | null
+  status?: "draft" | "published" | "archived"
   tags?: string[] | null
   sort_order: number
   featured: boolean
