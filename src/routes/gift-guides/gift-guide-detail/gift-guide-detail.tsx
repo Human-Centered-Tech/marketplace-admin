@@ -85,7 +85,9 @@ export const GiftGuideDetail = () => {
       lede: guide.lede ?? "",
       hero_image: guide.hero_image ?? "",
       category_handle: guide.category_handle ?? "",
-      tags: guide.tags ?? [],
+      // Hide the slug "anchor" tag from the editable list (it's always kept on
+      // save, so editing the rest can't orphan the guide's products).
+      tags: (guide.tags ?? []).filter((t) => t !== guide.slug),
       sort_order: guide.sort_order ?? 0,
       featured: !!guide.featured,
       active_from: isoDateInput(guide.active_from),
@@ -102,7 +104,10 @@ export const GiftGuideDetail = () => {
         lede: form.lede || null,
         hero_image: form.hero_image || null,
         category_handle: form.category_handle || null,
-        tags: form.tags.length ? form.tags : null,
+        // Always persist the slug as a tag — the stable "membership" anchor
+        // that this guide's products are tagged with. Without it, editing the
+        // tag list would orphan the guide's products. Extra tags are additive.
+        tags: Array.from(new Set([form.slug, ...form.tags].filter(Boolean))),
         sort_order: Number(form.sort_order) || 0,
         featured: form.featured,
         active_from: form.active_from || null,
@@ -235,8 +240,9 @@ export const GiftGuideDetail = () => {
                 }}
               />
               <Text className="text-ui-fg-subtle text-xs mt-1">
-                Products with any of these tags appear in the guide. Start
-                typing to pick an existing tag, or create a new one.
+                Products you add below stay anchored to this guide automatically.
+                These optional tags add MORE products (any product carrying a tag
+                appears) — editing them won&apos;t remove products you&apos;ve added.
               </Text>
             </div>
             <div>
