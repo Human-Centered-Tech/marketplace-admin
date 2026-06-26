@@ -2,16 +2,15 @@ import { useState } from "react"
 import { Container, Heading, Text, Button } from "@medusajs/ui"
 import { useUpdateDirectoryListing } from "../../../hooks/api/directory"
 
-// 50 US states + DC — kept in sync with the storefront directory state filter
-// (DirectorySearch US_STATES), so any state a shopper can filter by is one a
-// listing can be set to serve.
+// 50 US states (no DC) — kept in sync with the storefront directory state
+// filter (DirectorySearch US_STATES), so any state a shopper can filter by is
+// one a listing can be set to serve.
 const US_STATES = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL",
-  "GA", "HI", "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA",
-  "MD", "ME", "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE",
-  "NH", "NJ", "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI",
-  "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV",
-  "WY",
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD",
+  "ME", "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE", "NH",
+  "NJ", "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY",
 ]
 
 const parseStates = (raw: string | null | undefined): string[] =>

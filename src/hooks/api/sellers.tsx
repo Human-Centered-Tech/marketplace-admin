@@ -162,6 +162,9 @@ export const useSeller = (id: string) => {
             "id,email,name,created_at,store_status,description,handle,phone,address_line,city,country_code,postal_code,tax_id",
         },
       }),
+    // Guard so callers can pass an empty id (e.g. an unlinked directory
+    // listing) without firing a bad /admin/sellers/ request.
+    enabled: !!id,
   });
 };
 

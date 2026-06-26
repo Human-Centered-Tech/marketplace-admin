@@ -18,6 +18,7 @@ import {
   useLinkDirectoryListing,
   useDeleteDirectoryListing,
 } from "../../../hooks/api/directory"
+import { useSeller } from "../../../hooks/api/sellers"
 import { BadgeAssignment } from "./badge-assignment"
 import { CategoryEditor } from "./category-editor"
 import { ExtendedFieldsEditor } from "./extended-fields"
@@ -38,6 +39,13 @@ export const DirectoryDetail = () => {
   const [email, setEmail] = useState("")
 
   const listing = (data as any)?.listing
+
+  // Resolve the linked vendor's name + email so Brooke can confirm she's
+  // looking at / linking the right shop (the listing detail endpoint only
+  // returns the raw seller id). Reuses the existing admin seller query;
+  // disabled when nothing is linked yet.
+  const { data: sellerData } = useSeller(listing?.vendor_id || "")
+  const linkedSeller = sellerData?.seller
 
   if (isLoading) {
     return (
@@ -161,8 +169,17 @@ export const DirectoryDetail = () => {
         {listing.vendor_id ? (
           <div className="flex items-center justify-between">
             <div>
-              <Text className="text-sm">
-                Linked to vendor: <span className="font-medium">{listing.vendor_id}</span>
+              {linkedSeller && (
+                <Text className="text-sm">
+                  <span className="font-medium">
+                    {linkedSeller.name || "Unnamed vendor"}
+                  </span>
+                  {linkedSeller.email ? ` — ${linkedSeller.email}` : ""}
+                </Text>
+              )}
+              <Text className="text-ui-fg-subtle text-xs">
+                Linked to vendor:{" "}
+                <span className="font-medium">{listing.vendor_id}</span>
               </Text>
             </div>
             <Button
