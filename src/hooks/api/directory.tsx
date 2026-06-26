@@ -117,6 +117,58 @@ export const useVerifyDirectoryListing = () => {
   })
 }
 
+// Admin cleanup tools (Brooke 6/26): delete a listing (e.g. free a stuck slug)
+// and link a listing to a user by email (sets owner_id + vendor_id).
+
+export const useDeleteDirectoryListing = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      sdk.client.fetch(`/admin/directory/listings/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.all,
+      })
+    },
+  })
+}
+
+export const useLinkDirectoryListing = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      email,
+      subscription_status,
+    }: {
+      id: string
+      email: string
+      subscription_status?: "active" | "pending"
+    }) =>
+      sdk.client.fetch<{
+        id: string
+        owner_id: string
+        vendor_id: string | null
+        seller_linked: boolean
+      }>(`/admin/directory/listings/${id}/link`, {
+        method: "POST",
+        body: { email, subscription_status },
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.detail(vars.id),
+      })
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.all,
+      })
+    },
+  })
+}
+
 // Categories
 
 export const useDirectoryCategories = (

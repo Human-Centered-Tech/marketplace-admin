@@ -1,10 +1,22 @@
-import { Container, Heading, Text, Badge, Button, Textarea, Input } from "@medusajs/ui"
+import {
+  Container,
+  Heading,
+  Text,
+  Badge,
+  Button,
+  Textarea,
+  Input,
+  usePrompt,
+  toast,
+} from "@medusajs/ui"
 import { useParams, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import {
   useDirectoryListing,
   useVerifyDirectoryListing,
   useUpdateDirectoryListing,
+  useLinkDirectoryListing,
+  useDeleteDirectoryListing,
 } from "../../../hooks/api/directory"
 import { BadgeAssignment } from "./badge-assignment"
 import { CategoryEditor } from "./category-editor"
@@ -19,8 +31,11 @@ export const DirectoryDetail = () => {
   const { data, isLoading } = useDirectoryListing(id!)
   const verifyMutation = useVerifyDirectoryListing()
   const updateMutation = useUpdateDirectoryListing()
+  const linkMutation = useLinkDirectoryListing()
+  const deleteMutation = useDeleteDirectoryListing()
+  const prompt = usePrompt()
   const [notes, setNotes] = useState("")
-  const [vendorId, setVendorId] = useState("")
+  const [email, setEmail] = useState("")
 
   const listing = (data as any)?.listing
 
@@ -167,30 +182,43 @@ export const DirectoryDetail = () => {
         ) : (
           <div className="flex items-center gap-2">
             <Input
-              placeholder="Enter vendor/seller ID..."
-              value={vendorId}
-              onChange={(e) => setVendorId(e.target.value)}
+              placeholder="Enter the user's account email..."
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="flex-1"
             />
             <Button
               variant="primary"
               size="small"
-              disabled={!vendorId.trim()}
+              disabled={!email.trim()}
               onClick={async () => {
-                await updateMutation.mutateAsync({
-                  id: id!,
-                  vendor_id: vendorId.trim(),
-                })
-                setVendorId("")
+                try {
+                  const res = await linkMutation.mutateAsync({
+                    id: id!,
+                    email: email.trim(),
+                  })
+                  setEmail("")
+                  if (res.seller_linked) {
+                    toast.success("Linked the listing to the user's shop.")
+                  } else {
+                    toast.warning(
+                      "Linked to the customer, but they aren't a merchant yet — no shop to attach."
+                    )
+                  }
+                } catch (e: any) {
+                  toast.error(e?.message || "Could not link — check the email.")
+                }
               }}
-              isLoading={updateMutation.isPending}
+              isLoading={linkMutation.isPending}
             >
               Link
             </Button>
           </div>
         )}
         <Text className="text-ui-fg-subtle text-xs mt-2">
-          Links this directory listing to a marketplace vendor storefront.
+          Link by the user's account email — sets the owner and, if they're a
+          merchant, attaches their shop.
         </Text>
       </Container>
 
@@ -225,6 +253,41 @@ export const DirectoryDetail = () => {
           </div>
         </Container>
       )}
+
+      {/* Delete (admin cleanup) — Brooke 6/26 */}
+      <Container>
+        <Heading level="h2" className="mb-4">
+          Delete listing
+        </Heading>
+        <Text className="text-ui-fg-subtle text-sm mb-4">
+          Permanently removes this listing — e.g. to free a slug taken by a
+          stale imported row that&rsquo;s blocking a vendor. This can&rsquo;t be
+          undone.
+        </Text>
+        <Button
+          variant="danger"
+          size="small"
+          isLoading={deleteMutation.isPending}
+          onClick={async () => {
+            const ok = await prompt({
+              title: "Delete listing",
+              description: `Permanently delete "${listing.business_name}"? This frees its slug and can't be undone.`,
+              confirmText: "Delete",
+              cancelText: "Cancel",
+            })
+            if (!ok) return
+            try {
+              await deleteMutation.mutateAsync(id!)
+              toast.success("Listing deleted.")
+              navigate("/directory")
+            } catch (e: any) {
+              toast.error(e?.message || "Could not delete the listing.")
+            }
+          }}
+        >
+          Delete listing
+        </Button>
+      </Container>
 
       {/* Category assignment — change which directory category this
           listing appears under. */}
