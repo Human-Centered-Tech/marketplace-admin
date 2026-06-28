@@ -300,6 +300,26 @@ export const useUpdateSeller = () => {
   });
 };
 
+// Admin testing/cleanup helpers backing the seller-page buttons. Hits
+// POST /admin/sellers/:id/email-tools — action "verify" force-marks the
+// linked customer email as verified; action "free" releases the email for
+// re-registration (same proven path as the admin listing-delete).
+export const useSellerEmailTools = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (action: "verify" | "free") =>
+      sdk.client.fetch(`/admin/sellers/${id}/email-tools`, {
+        method: "POST",
+        body: { action },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sellerQueryKeys.list() });
+      queryClient.invalidateQueries({ queryKey: sellerQueryKeys.detail(id) });
+    },
+  });
+};
+
 export const useSellerProducts = (
   id: string,
   query?: Record<string, string | number>,

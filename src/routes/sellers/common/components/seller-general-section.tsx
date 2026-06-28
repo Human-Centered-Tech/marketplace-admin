@@ -1,5 +1,17 @@
-import { PencilSquare, User } from "@medusajs/icons";
-import { Container, Divider, Heading, Text, usePrompt } from "@medusajs/ui";
+import {
+  CheckCircleSolid,
+  EnvelopeSolid,
+  PencilSquare,
+  User,
+} from "@medusajs/icons";
+import {
+  Container,
+  Divider,
+  Heading,
+  Text,
+  toast,
+  usePrompt,
+} from "@medusajs/ui";
 
 import { useNavigate } from "react-router-dom";
 
@@ -8,14 +20,54 @@ import type { VendorSeller } from "@custom-types/seller";
 import { ActionsButton } from "@components/common/actions-button";
 import { SellerStatusBadge } from "@components/common/seller-status-badge";
 
-import { useUpdateSeller } from "@hooks/api/sellers";
+import { useSellerEmailTools, useUpdateSeller } from "@hooks/api/sellers";
 
 export const SellerGeneralSection = ({ seller }: { seller: VendorSeller }) => {
   const navigate = useNavigate();
 
   const { mutateAsync: suspendSeller } = useUpdateSeller();
+  const { mutateAsync: emailTool } = useSellerEmailTools(seller.id);
 
   const dialog = usePrompt();
+
+  // Testing helper: force-mark this account's email as verified so a made-up
+  // test merchant can skip the email-verification gate (no inbox needed).
+  const handleVerifyEmail = async () => {
+    const ok = await dialog({
+      title: "Mark email verified",
+      description: `Force-mark ${
+        seller.email || "this account"
+      } as email-verified so it can skip the verification step? (Testing helper.)`,
+    });
+    if (!ok) return;
+    try {
+      await emailTool("verify");
+      toast.success(`Marked ${seller.email} as verified.`);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not mark email verified.");
+    }
+  };
+
+  // Testing/cleanup helper: release this email for re-registration immediately
+  // (deletes the login identity, soft-deletes the seller, anonymizes the
+  // customer — order history is kept). Irreversible, so we require typing the
+  // email to confirm.
+  const handleFreeEmail = async () => {
+    const ok = await dialog({
+      title: "Free email for re-registration",
+      description: `Release ${
+        seller.email || "this email"
+      } so it can sign up again from scratch. This deletes the login identity, soft-deletes this seller, and anonymizes the customer record (order history is kept). This cannot be undone.`,
+      verificationText: seller.email || seller.name || "",
+    });
+    if (!ok) return;
+    try {
+      await emailTool("free");
+      toast.success(`Freed ${seller.email} for re-registration.`);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not free email.");
+    }
+  };
 
   const handleSuspend = async () => {
     const res = await dialog({
@@ -66,6 +118,16 @@ export const SellerGeneralSection = ({ seller }: { seller: VendorSeller }) => {
                         : "Suspend account",
                     onClick: () => handleSuspend(),
                     icon: <User />,
+                  },
+                  {
+                    label: "Mark email verified",
+                    onClick: () => handleVerifyEmail(),
+                    icon: <CheckCircleSolid />,
+                  },
+                  {
+                    label: "Free email (re-registration)",
+                    onClick: () => handleFreeEmail(),
+                    icon: <EnvelopeSolid />,
                   },
                 ]}
               />
