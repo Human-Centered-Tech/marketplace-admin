@@ -144,20 +144,38 @@ export const useLinkDirectoryListing = () => {
       id,
       email,
       subscription_status,
+      stripe_subscription_id,
+      stripe_customer_id,
     }: {
       id: string
       email: string
       subscription_status?: "active" | "pending"
-    }) =>
-      sdk.client.fetch<{
+      // Grandfathered-membership migration: record the member's EXISTING
+      // Stripe subscription (and optional customer) on the listing.
+      stripe_subscription_id?: string
+      stripe_customer_id?: string
+    }) => {
+      // Only send fields the backend should set; omit empties so an
+      // unset Stripe id never clobbers an existing value.
+      const body: Record<string, string> = { email }
+      if (subscription_status) body.subscription_status = subscription_status
+      if (stripe_subscription_id?.trim())
+        body.stripe_subscription_id = stripe_subscription_id.trim()
+      if (stripe_customer_id?.trim())
+        body.stripe_customer_id = stripe_customer_id.trim()
+
+      return sdk.client.fetch<{
         id: string
         owner_id: string
         vendor_id: string | null
         seller_linked: boolean
+        stripe_subscription_id: string | null
+        stripe_customer_id: string | null
       }>(`/admin/directory/listings/${id}/link`, {
         method: "POST",
-        body: { email, subscription_status },
-      }),
+        body,
+      })
+    },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({
         queryKey: directoryListingQueryKeys.detail(vars.id),

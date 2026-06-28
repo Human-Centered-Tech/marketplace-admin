@@ -6,9 +6,12 @@ import {
   Button,
   Textarea,
   Input,
+  Label,
+  FocusModal,
   usePrompt,
   toast,
 } from "@medusajs/ui"
+import { Link } from "@medusajs/icons"
 import { useParams, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import {
@@ -37,6 +40,41 @@ export const DirectoryDetail = () => {
   const prompt = usePrompt()
   const [notes, setNotes] = useState("")
   const [email, setEmail] = useState("")
+
+  // "Link existing membership" migration dialog — links a grandfathered
+  // member's EXISTING Stripe subscription to this claimed listing and marks
+  // it active. Local state for the modal + its form fields.
+  const [migrateOpen, setMigrateOpen] = useState(false)
+  const [migrateEmail, setMigrateEmail] = useState("")
+  const [migrateSubId, setMigrateSubId] = useState("")
+  const [migrateCustId, setMigrateCustId] = useState("")
+
+  const handleMigrateLink = async () => {
+    try {
+      const res = await linkMutation.mutateAsync({
+        id: id!,
+        email: migrateEmail.trim(),
+        subscription_status: "active",
+        stripe_subscription_id: migrateSubId.trim() || undefined,
+        stripe_customer_id: migrateCustId.trim() || undefined,
+      })
+      setMigrateOpen(false)
+      setMigrateEmail("")
+      setMigrateSubId("")
+      setMigrateCustId("")
+      if (res.seller_linked) {
+        toast.success(
+          "Membership linked — listing marked active and tied to the member's shop."
+        )
+      } else {
+        toast.warning(
+          "Membership linked and marked active, but this account isn't a merchant yet — no shop to attach."
+        )
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Could not link — check the email.")
+    }
+  }
 
   const listing = (data as any)?.listing
 
@@ -237,6 +275,104 @@ export const DirectoryDetail = () => {
           Link by the user's account email — sets the owner and, if they're a
           merchant, attaches their shop.
         </Text>
+
+        {/* Grandfathered-membership migration (Brooke): link an existing
+            member's PRIOR Stripe subscription to this claimed listing and
+            mark it active — no new checkout. */}
+        <div className="mt-4 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Text className="font-medium text-sm">
+                Link existing membership
+              </Text>
+              <Text className="text-ui-fg-subtle text-xs">
+                Migration: tie a grandfathered member's prior Stripe
+                subscription to this listing and mark it active.
+              </Text>
+            </div>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={() => {
+                // Prefill the email from the inline field if Brooke typed one.
+                setMigrateEmail(email.trim())
+                setMigrateOpen(true)
+              }}
+            >
+              <Link />
+              Link existing membership
+            </Button>
+          </div>
+        </div>
+
+        <FocusModal open={migrateOpen} onOpenChange={setMigrateOpen}>
+          <FocusModal.Content>
+            <FocusModal.Header>
+              <Heading level="h2">Link existing membership</Heading>
+            </FocusModal.Header>
+            <FocusModal.Body className="flex flex-col items-center py-16">
+              <div className="flex w-full max-w-lg flex-col gap-4">
+                <Text className="text-ui-fg-subtle text-sm">
+                  Links a grandfathered member's prior Stripe subscription to
+                  this listing and marks it <strong>active</strong>. Use the
+                  member's account email plus the Stripe subscription ID from
+                  their existing subscription.
+                </Text>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="migrate-email" size="small">
+                    Member email
+                  </Label>
+                  <Input
+                    id="migrate-email"
+                    type="email"
+                    placeholder="member@example.com"
+                    value={migrateEmail}
+                    onChange={(e) => setMigrateEmail(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="migrate-sub" size="small">
+                    Stripe subscription ID
+                  </Label>
+                  <Input
+                    id="migrate-sub"
+                    placeholder="sub_..."
+                    value={migrateSubId}
+                    onChange={(e) => setMigrateSubId(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="migrate-cust" size="small">
+                    Stripe customer ID{" "}
+                    <span className="text-ui-fg-muted">(optional)</span>
+                  </Label>
+                  <Input
+                    id="migrate-cust"
+                    placeholder="cus_..."
+                    value={migrateCustId}
+                    onChange={(e) => setMigrateCustId(e.target.value)}
+                  />
+                </div>
+              </div>
+            </FocusModal.Body>
+            <FocusModal.Footer>
+              <Button
+                variant="secondary"
+                onClick={() => setMigrateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                disabled={!migrateEmail.trim()}
+                isLoading={linkMutation.isPending}
+                onClick={handleMigrateLink}
+              >
+                Link membership
+              </Button>
+            </FocusModal.Footer>
+          </FocusModal.Content>
+        </FocusModal>
       </Container>
 
       {/* Verification controls */}
