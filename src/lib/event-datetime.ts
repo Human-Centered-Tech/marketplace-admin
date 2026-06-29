@@ -89,10 +89,16 @@ export const formatEventEastern = (
   if (!value) return "No date set"
   const d = new Date(value)
   if (isNaN(d.getTime())) return "No date set"
+  // NOTE: do NOT use dateStyle/timeStyle here — combining either with
+  // timeZoneName throws a RangeError in Intl.DateTimeFormat. Use explicit
+  // field options instead. e.g. "Jul 27, 2026, 7:00 PM EDT".
   return d.toLocaleString("en-US", {
     timeZone: EVENT_TIME_ZONE,
-    dateStyle: "medium",
-    timeStyle: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     timeZoneName: "short",
   })
 }
