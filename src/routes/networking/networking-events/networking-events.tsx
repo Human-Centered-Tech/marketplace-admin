@@ -5,6 +5,10 @@ import {
   useNetworkingEvents,
   useCreateNetworkingEvent,
 } from "../../../hooks/api/networking"
+import {
+  localTimeZoneLabel,
+  localDatetimeInputToISO,
+} from "../../../lib/event-datetime"
 
 const statusColors: Record<string, "green" | "orange" | "red" | "grey"> = {
   published: "green",
@@ -36,6 +40,8 @@ export const NetworkingEvents = () => {
   const handleCreate = async () => {
     await createMutation.mutateAsync({
       ...form,
+      // Convert the local datetime-local value to a real UTC instant.
+      event_date: localDatetimeInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
     })
@@ -109,6 +115,9 @@ export const NetworkingEvents = () => {
                   value={form.event_date}
                   onChange={(e) => setForm({ ...form, event_date: e.target.value })}
                 />
+                <Text className="text-ui-fg-subtle text-xs mt-1">
+                  Times are in {localTimeZoneLabel()}
+                </Text>
               </div>
               <div>
                 <Text className="font-medium mb-1 text-sm">Duration (minutes)</Text>

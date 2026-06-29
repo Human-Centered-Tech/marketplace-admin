@@ -6,6 +6,11 @@ import {
   useUpdateNetworkingEvent,
   useDeleteNetworkingEvent,
 } from "../../../hooks/api/networking"
+import {
+  localTimeZoneLabel,
+  toLocalDatetimeInput,
+  localDatetimeInputToISO,
+} from "../../../lib/event-datetime"
 
 const statusColors: Record<string, "green" | "orange" | "red" | "grey"> = {
   published: "green",
@@ -47,9 +52,8 @@ export const NetworkingEventDetail = () => {
     setForm({
       title: event.title || "",
       description: event.description || "",
-      event_date: event.event_date
-        ? new Date(event.event_date).toISOString().slice(0, 16)
-        : "",
+      // Stored UTC instant -> local datetime-local string (matches what was typed).
+      event_date: toLocalDatetimeInput(event.event_date),
       duration_minutes: event.duration_minutes || 60,
       max_participants: event.max_participants || 20,
       event_type: event.event_type || "general",
@@ -61,6 +65,8 @@ export const NetworkingEventDetail = () => {
     await updateMutation.mutateAsync({
       id: id!,
       ...form,
+      // Local datetime-local value -> real UTC instant.
+      event_date: localDatetimeInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
     })
@@ -189,6 +195,9 @@ export const NetworkingEventDetail = () => {
                     setForm({ ...form, event_date: e.target.value })
                   }
                 />
+                <Text className="text-ui-fg-subtle text-xs mt-1">
+                  Times are in {localTimeZoneLabel()}
+                </Text>
               </div>
               <div>
                 <Text className="font-medium mb-1 text-sm">
