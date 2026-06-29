@@ -6,9 +6,11 @@ import {
   useCreateNetworkingEvent,
 } from "../../../hooks/api/networking"
 import {
-  localTimeZoneLabel,
-  localDatetimeInputToISO,
+  eventTimeZoneLabel,
+  eventInputToISO,
+  formatEventEastern,
 } from "../../../lib/event-datetime"
+import { HeroImageInput } from "../../gift-guides/components/hero-image-input"
 
 const statusColors: Record<string, "green" | "orange" | "red" | "grey"> = {
   published: "green",
@@ -25,6 +27,7 @@ export const NetworkingEvents = () => {
   const [form, setForm] = useState({
     title: "",
     description: "",
+    image_url: "",
     event_date: "",
     duration_minutes: 60,
     max_participants: 20,
@@ -40,8 +43,8 @@ export const NetworkingEvents = () => {
   const handleCreate = async () => {
     await createMutation.mutateAsync({
       ...form,
-      // Convert the local datetime-local value to a real UTC instant.
-      event_date: localDatetimeInputToISO(form.event_date),
+      // Eastern wall-clock -> real UTC instant.
+      event_date: eventInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
     })
@@ -49,6 +52,7 @@ export const NetworkingEvents = () => {
     setForm({
       title: "",
       description: "",
+      image_url: "",
       event_date: "",
       duration_minutes: 60,
       max_participants: 20,
@@ -116,7 +120,7 @@ export const NetworkingEvents = () => {
                   onChange={(e) => setForm({ ...form, event_date: e.target.value })}
                 />
                 <Text className="text-ui-fg-subtle text-xs mt-1">
-                  Times are in {localTimeZoneLabel()}
+                  Times are in {eventTimeZoneLabel()}
                 </Text>
               </div>
               <div>
@@ -189,6 +193,15 @@ export const NetworkingEvents = () => {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
+            <div className="mb-4">
+              <Text className="font-medium mb-1 text-sm">
+                Event Graphic (optional)
+              </Text>
+              <HeroImageInput
+                value={form.image_url}
+                onChange={(url) => setForm({ ...form, image_url: url })}
+              />
+            </div>
             <Button
               variant="primary"
               size="small"
@@ -218,9 +231,7 @@ export const NetworkingEvents = () => {
                 <div>
                   <Text className="font-medium">{event.title}</Text>
                   <Text className="text-ui-fg-subtle text-xs">
-                    {event.event_date
-                      ? new Date(event.event_date).toLocaleString()
-                      : "No date set"}
+                    {formatEventEastern(event.event_date)}
                   </Text>
                 </div>
                 <div className="flex items-center gap-2">

@@ -7,10 +7,12 @@ import {
   useDeleteNetworkingEvent,
 } from "../../../hooks/api/networking"
 import {
-  localTimeZoneLabel,
-  toLocalDatetimeInput,
-  localDatetimeInputToISO,
+  eventTimeZoneLabel,
+  isoToEventInput,
+  eventInputToISO,
+  formatEventEastern,
 } from "../../../lib/event-datetime"
+import { HeroImageInput } from "../../gift-guides/components/hero-image-input"
 
 const statusColors: Record<string, "green" | "orange" | "red" | "grey"> = {
   published: "green",
@@ -52,8 +54,9 @@ export const NetworkingEventDetail = () => {
     setForm({
       title: event.title || "",
       description: event.description || "",
-      // Stored UTC instant -> local datetime-local string (matches what was typed).
-      event_date: toLocalDatetimeInput(event.event_date),
+      image_url: event.image_url || "",
+      // Stored UTC instant -> Eastern datetime-local string (matches what was typed).
+      event_date: isoToEventInput(event.event_date),
       duration_minutes: event.duration_minutes || 60,
       max_participants: event.max_participants || 20,
       event_type: event.event_type || "general",
@@ -65,8 +68,8 @@ export const NetworkingEventDetail = () => {
     await updateMutation.mutateAsync({
       id: id!,
       ...form,
-      // Local datetime-local value -> real UTC instant.
-      event_date: localDatetimeInputToISO(form.event_date),
+      // Eastern wall-clock -> real UTC instant.
+      event_date: eventInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
     })
@@ -89,9 +92,7 @@ export const NetworkingEventDetail = () => {
           <div>
             <Heading level="h1">{event.title}</Heading>
             <Text className="text-ui-fg-subtle">
-              {event.event_date
-                ? new Date(event.event_date).toLocaleString()
-                : "No date set"}
+              {formatEventEastern(event.event_date)}
             </Text>
           </div>
           <div className="flex gap-2">
@@ -196,7 +197,7 @@ export const NetworkingEventDetail = () => {
                   }
                 />
                 <Text className="text-ui-fg-subtle text-xs mt-1">
-                  Times are in {localTimeZoneLabel()}
+                  Times are in {eventTimeZoneLabel()}
                 </Text>
               </div>
               <div>
@@ -278,6 +279,15 @@ export const NetworkingEventDetail = () => {
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
+              />
+            </div>
+            <div className="mb-4">
+              <Text className="font-medium mb-1 text-sm">
+                Event Graphic (optional)
+              </Text>
+              <HeroImageInput
+                value={form.image_url || ""}
+                onChange={(url) => setForm({ ...form, image_url: url })}
               />
             </div>
             <div className="flex gap-2">

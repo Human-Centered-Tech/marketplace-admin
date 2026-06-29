@@ -1,44 +1,98 @@
-// A <input type="datetime-local"> works in the browser's LOCAL timezone, but the
-// networking_event.event_date column is `timestamptz`. Previously the naive
-// string (e.g. "2026-07-15T19:00") was sent as-is and parsed server-side in the
-// server's zone (UTC on Railway) — so whatever the admin typed was stored as that
-// wall-clock in UTC and then rendered back via toLocaleString() in each viewer's
-// zone, silently shifting the time with no indication of which zone was meant.
-//
-// These helpers make the input behave as the admin's local time: convert local ->
-// a real UTC instant on save, and the stored instant -> a local input string on
-// edit. Displays (toLocaleString) then show the correct local time for every
-// viewer. Pair the inputs with localTimeZoneLabel() so the zone is explicit.
+// Networking events are scheduled and displayed in US Eastern — the storefront
+// pins event display to America/New_York ("Events are scheduled in US Eastern").
+// These helpers keep the admin form on the same convention: interpret the
+// datetime-local value as Eastern wall-clock, store a real UTC instant, and
+// convert back for editing — so the time the admin types is exactly what
+// attendees see on the storefront. Previously the naive string was sent as-is
+// and parsed in the server's zone (UTC on Railway), silently shifting events
+// with no indication of which zone was meant.
 
-export const localTimeZoneLabel = (): string => {
-  try {
-    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
-    const abbr = new Date()
-      .toLocaleTimeString("en-US", { timeZoneName: "short" })
-      .split(" ")
-      .pop()
-    return abbr && /[A-Za-z]/.test(abbr) ? `${zone} (${abbr})` : zone
-  } catch {
-    return "your local timezone"
-  }
+export const EVENT_TIME_ZONE = "America/New_York"
+
+// Offset (minutes, east-positive) of EVENT_TIME_ZONE at a given UTC instant.
+const easternOffsetMinutes = (instant: number): number => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: EVENT_TIME_ZONE,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(new Date(instant))
+  const m: Record<string, number> = {}
+  for (const p of parts) if (p.type !== "literal") m[p.type] = Number(p.value)
+  const hour = m.hour === 24 ? 0 : m.hour
+  // Treat the Eastern wall-clock as if it were UTC, then diff against the instant.
+  const asUTC = Date.UTC(m.year, m.month - 1, m.day, hour, m.minute, m.second)
+  return Math.round((asUTC - instant) / 60000)
 }
 
-// Stored instant -> "YYYY-MM-DDTHH:mm" in LOCAL time, for a datetime-local input.
-export const toLocalDatetimeInput = (
+// "YYYY-MM-DDTHH:mm" (Eastern wall-clock) -> UTC ISO instant.
+export const eventInputToISO = (value: string): string => {
+  if (!value) return ""
+  const [datePart, timePart] = value.split("T")
+  if (!datePart || !timePart) return ""
+  const [y, mo, d] = datePart.split("-").map(Number)
+  const [h, mi] = timePart.split(":").map(Number)
+  if ([y, mo, d, h, mi].some((n) => Number.isNaN(n))) return ""
+  // First guess treats the wall-clock as UTC, then corrects by the Eastern
+  // offset at that approximate instant (exact except within the DST overlap hour).
+  const guess = Date.UTC(y, mo - 1, d, h, mi)
+  const off = easternOffsetMinutes(guess)
+  return new Date(guess - off * 60000).toISOString()
+}
+
+// UTC instant -> "YYYY-MM-DDTHH:mm" in Eastern, for a datetime-local input.
+export const isoToEventInput = (
   value: string | number | Date | null | undefined
 ): string => {
   if (!value) return ""
   const d = new Date(value)
   if (isNaN(d.getTime())) return ""
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: EVENT_TIME_ZONE,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(d)
+  const m: Record<string, string> = {}
+  for (const p of parts) if (p.type !== "literal") m[p.type] = p.value
+  const hour = m.hour === "24" ? "00" : m.hour
+  return `${m.year}-${m.month}-${m.day}T${hour}:${m.minute}`
 }
 
-// datetime-local value (local wall-clock) -> UTC ISO instant for the API.
-export const localDatetimeInputToISO = (value: string): string => {
-  if (!value) return ""
-  const d = new Date(value) // naive datetime-local string is parsed as local time
-  return isNaN(d.getTime()) ? "" : d.toISOString()
+// e.g. "Eastern Time (EDT)" — the zone the inputs/displays use.
+export const eventTimeZoneLabel = (): string => {
+  try {
+    const abbr = new Date()
+      .toLocaleTimeString("en-US", {
+        timeZone: EVENT_TIME_ZONE,
+        timeZoneName: "short",
+      })
+      .split(" ")
+      .pop()
+    return abbr && /[A-Za-z]/.test(abbr) ? `Eastern Time (${abbr})` : "Eastern Time"
+  } catch {
+    return "Eastern Time"
+  }
+}
+
+// UTC instant -> human display string in Eastern (for admin lists/headers).
+export const formatEventEastern = (
+  value: string | number | Date | null | undefined
+): string => {
+  if (!value) return "No date set"
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return "No date set"
+  return d.toLocaleString("en-US", {
+    timeZone: EVENT_TIME_ZONE,
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZoneName: "short",
+  })
 }
