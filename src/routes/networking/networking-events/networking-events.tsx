@@ -32,6 +32,8 @@ export const NetworkingEvents = () => {
     duration_minutes: 60,
     max_participants: 20,
     event_type: "general" as "general" | "featured",
+    // Custom "Event Format" agenda -> saved into metadata.format on create.
+    event_format: "",
   })
 
   const { events, count, isLoading } = useNetworkingEvents(
@@ -41,12 +43,17 @@ export const NetworkingEvents = () => {
   const createMutation = useCreateNetworkingEvent()
 
   const handleCreate = async () => {
+    // event_format isn't a model column — send it inside metadata.format.
+    const { event_format, ...rest } = form
     await createMutation.mutateAsync({
-      ...form,
+      ...rest,
       // Eastern wall-clock -> real UTC instant.
       event_date: eventInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
+      ...(event_format.trim()
+        ? { metadata: { format: event_format.trim() } }
+        : {}),
     })
     setShowCreate(false)
     setForm({
@@ -57,6 +64,7 @@ export const NetworkingEvents = () => {
       duration_minutes: 60,
       max_participants: 20,
       event_type: "general",
+      event_format: "",
     })
   }
 
@@ -191,6 +199,23 @@ export const NetworkingEvents = () => {
                 placeholder="Event description..."
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </div>
+            <div className="mb-4">
+              <Text className="font-medium mb-1 text-sm">
+                Event Format (optional)
+              </Text>
+              <Textarea
+                rows={5}
+                placeholder={
+                  "Customize the agenda shown on the event page. Leave blank " +
+                  "to use the standard Opening Prayer · Networking Rounds · " +
+                  "Closing Reflection agenda."
+                }
+                value={form.event_format}
+                onChange={(e) =>
+                  setForm({ ...form, event_format: e.target.value })
+                }
               />
             </div>
             <div className="mb-4">

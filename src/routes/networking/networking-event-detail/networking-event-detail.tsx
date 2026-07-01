@@ -60,18 +60,31 @@ export const NetworkingEventDetail = () => {
       duration_minutes: event.duration_minutes || 60,
       max_participants: event.max_participants || 20,
       event_type: event.event_type || "general",
+      // Custom "Event Format" agenda. Stored in metadata.format (no dedicated
+      // column); empty = storefront shows the standard agenda.
+      event_format: event.metadata?.format || "",
     })
     setEditing(true)
   }
 
   const handleUpdate = async () => {
+    // event_format isn't a model column — fold it into the metadata JSON
+    // (merging existing keys) instead of sending it as a top-level field.
+    const { event_format, ...rest } = form
     await updateMutation.mutateAsync({
       id: id!,
-      ...form,
+      ...rest,
       // Eastern wall-clock -> real UTC instant.
       event_date: eventInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
+      metadata: {
+        ...(event.metadata || {}),
+        format:
+          typeof event_format === "string" && event_format.trim()
+            ? event_format.trim()
+            : undefined,
+      },
     })
     setEditing(false)
   }
@@ -111,6 +124,15 @@ export const NetworkingEventDetail = () => {
               <div className="mb-4">
                 <Text className="font-medium mb-1">Description</Text>
                 <Text className="text-ui-fg-subtle">{event.description}</Text>
+              </div>
+            )}
+
+            {event.metadata?.format && (
+              <div className="mb-4">
+                <Text className="font-medium mb-1">Event Format</Text>
+                <Text className="text-ui-fg-subtle whitespace-pre-line">
+                  {event.metadata.format}
+                </Text>
               </div>
             )}
 
@@ -280,6 +302,29 @@ export const NetworkingEventDetail = () => {
                   setForm({ ...form, description: e.target.value })
                 }
               />
+            </div>
+            <div className="mb-4">
+              <Text className="font-medium mb-1 text-sm">
+                Event Format (optional)
+              </Text>
+              <Textarea
+                rows={5}
+                placeholder={
+                  "Customize the agenda shown on the event page, e.g.\n" +
+                  "Opening Prayer — a brief reflection on the dignity of labor.\n" +
+                  "Networking Rounds — structured 1-on-1 breakout sessions.\n" +
+                  "Closing Reflection — shared insights and prayer intentions."
+                }
+                value={form.event_format}
+                onChange={(e) =>
+                  setForm({ ...form, event_format: e.target.value })
+                }
+              />
+              <Text className="text-ui-fg-subtle text-xs mt-1">
+                Overrides the standard agenda for this event. Leave blank to use
+                the default (Opening Prayer · Networking Rounds · Closing
+                Reflection).
+              </Text>
             </div>
             <div className="mb-4">
               <Text className="font-medium mb-1 text-sm">

@@ -25,6 +25,7 @@ import { useSeller } from "../../../hooks/api/sellers"
 import { BadgeAssignment } from "./badge-assignment"
 import { CategoryEditor } from "./category-editor"
 import { ExtendedFieldsEditor } from "./extended-fields"
+import { GalleryEditor } from "./gallery-editor"
 import { PremiumStatesEditor } from "./premium-states"
 import { ServicedStatesEditor } from "./serviced-states"
 import { FeaturedHomepageSection } from "./featured-homepage-section"
@@ -451,6 +452,10 @@ export const DirectoryDetail = () => {
 
       {/* Custom badge assignments — available for all listings */}
       <BadgeAssignment listingId={id!} />
+
+      {/* Photo gallery — up to 8 listing photos (gallery_urls). Vendors upload
+          these from their dashboard; admins can now add/replace them too. */}
+      <GalleryEditor listing={listing} />
 
       {/* 4/1 extended fields editor — owner interview, devotional, CTA */}
       <ExtendedFieldsEditor listing={listing} />
