@@ -93,6 +93,7 @@ export const SellerDetails = () => {
       <SellerOrdersSection seller_orders={orders as AdminOrderListResponse} />
       <SellerProductsSection
         seller_products={products as AdminProductListResponse}
+        seller_id={id!}
         refetch={productsRefetch}
       />
       <SellerCustomerGroupsSection

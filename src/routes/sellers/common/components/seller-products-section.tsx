@@ -1,7 +1,14 @@
-import { useMemo } from "react";
+import { type ChangeEvent, useMemo, useRef, useState } from "react";
 
 import { PencilSquare, Trash } from "@medusajs/icons";
-import { Container, Divider, Heading, toast, usePrompt } from "@medusajs/ui";
+import {
+  Button,
+  Container,
+  Divider,
+  Heading,
+  toast,
+  usePrompt,
+} from "@medusajs/ui";
 
 import { sdk } from "@lib/client";
 import { createColumnHelper } from "@tanstack/react-table";
@@ -25,12 +32,49 @@ const PREFIX = "sp";
 
 export const SellerProductsSection = ({
   seller_products,
+  seller_id,
   refetch,
 }: {
   seller_products: AdminProductListResponse;
+  seller_id: string;
   refetch: () => void;
 }) => {
   const { products, count } = seller_products;
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+
+  // Admin-side CSV import for THIS shop: posts the vendor-format CSV to
+  // /admin/sellers/:id/product-import, which creates the products (as drafts)
+  // attached to the seller and applies each variant's inventory quantity from
+  // the "Variant Inventory Quantity" column. Lets Brooke bulk-load or migrate a
+  // shop without the vendor's login.
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so re-selecting the same file still fires onChange.
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+    setImporting(true);
+    try {
+      const file_content = await file.text();
+      const res = (await sdk.client.fetch(
+        `/admin/sellers/${seller_id}/product-import`,
+        { method: "POST", body: { file_content } },
+      )) as { count?: number; stock_levels_set?: number };
+      toast.success("Products imported", {
+        description: `${res?.count ?? 0} product(s) created${
+          typeof res?.stock_levels_set === "number"
+            ? `, ${res.stock_levels_set} stock level(s) set`
+            : ""
+        }. They import as drafts — review and publish.`,
+      });
+      await refetch();
+    } catch (err: unknown) {
+      toast.error("Import failed", { description: (err as Error)?.message });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const { raw } = useSellerOrdersTableQuery({
     pageSize: PAGE_SIZE,
@@ -53,8 +97,25 @@ export const SellerProductsSection = ({
 
   return (
     <Container className="mt-2 px-0">
-      <div className="px-8 pb-4">
+      <div className="flex items-center justify-between px-8 pb-4">
         <Heading>Products</Heading>
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button
+            size="small"
+            variant="secondary"
+            isLoading={importing}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Import CSV
+          </Button>
+        </div>
       </div>
       <Divider />
       <_DataTable
