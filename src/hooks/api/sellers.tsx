@@ -159,6 +159,9 @@ export const useSeller = (id: string) => {
         method: "GET",
         query: {
           fields:
+            // account_status + is_on_vacation are injected by a backend response
+            // middleware (not field-projected), so they must NOT be requested here
+            // — Mercur's seller GET would 400 on unknown fields.
             "id,email,name,created_at,store_status,description,handle,phone,address_line,city,country_code,postal_code,tax_id",
         },
       }),
@@ -312,6 +315,26 @@ export const useSellerEmailTools = (id: string) => {
       sdk.client.fetch(`/admin/sellers/${id}/email-tools`, {
         method: "POST",
         body: { action },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sellerQueryKeys.list() });
+      queryClient.invalidateQueries({ queryKey: sellerQueryKeys.detail(id) });
+    },
+  });
+};
+
+// Vacation mode toggle backing the seller-page "Pause/Reopen shop" button.
+// Hits POST /admin/sellers/:id/vacation with { on_vacation } to pause (close)
+// or reopen the shop. Invalidating the detail query refetches the seller so the
+// status badge/button reflect the new state.
+export const useSellerVacation = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (on_vacation: boolean) =>
+      sdk.client.fetch(`/admin/sellers/${id}/vacation`, {
+        method: "POST",
+        body: { on_vacation },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sellerQueryKeys.list() });

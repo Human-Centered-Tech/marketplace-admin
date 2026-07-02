@@ -1,6 +1,7 @@
 import {
   CheckCircleSolid,
   EnvelopeSolid,
+  Moon,
   PencilSquare,
   User,
 } from "@medusajs/icons";
@@ -20,15 +21,25 @@ import type { VendorSeller } from "@custom-types/seller";
 import { ActionsButton } from "@components/common/actions-button";
 import { SellerStatusBadge } from "@components/common/seller-status-badge";
 
-import { useSellerEmailTools, useUpdateSeller } from "@hooks/api/sellers";
+import {
+  useSellerEmailTools,
+  useSellerVacation,
+  useUpdateSeller,
+} from "@hooks/api/sellers";
 
 export const SellerGeneralSection = ({ seller }: { seller: VendorSeller }) => {
   const navigate = useNavigate();
 
   const { mutateAsync: suspendSeller } = useUpdateSeller();
   const { mutateAsync: emailTool } = useSellerEmailTools(seller.id);
+  const { mutateAsync: setVacation } = useSellerVacation(seller.id);
 
   const dialog = usePrompt();
+
+  // Shop is "on vacation" (temporarily closed) — derive from the friendly
+  // account_status, falling back to the explicit is_on_vacation flag.
+  const isOnVacation =
+    seller.account_status === "on_vacation" || seller.is_on_vacation === true;
 
   // Testing helper: force-mark this account's email as verified so a made-up
   // test merchant can skip the email-verification gate (no inbox needed).
@@ -96,6 +107,27 @@ export const SellerGeneralSection = ({ seller }: { seller: VendorSeller }) => {
     }
   };
 
+  // Pause (close) or reopen the shop for vacation via
+  // POST /admin/sellers/:id/vacation. The mutation invalidates the seller
+  // detail query on success, so the badge/button refetch and reflect the state.
+  const handleVacation = async () => {
+    const ok = await dialog({
+      title: isOnVacation ? "Reopen shop" : "Pause shop (vacation)",
+      description: isOnVacation
+        ? "Reopen this shop so its storefront and listing are live again?"
+        : "Pause this shop for vacation? Its storefront will be temporarily closed until you reopen it.",
+    });
+    if (!ok) return;
+    try {
+      await setVacation(!isOnVacation);
+      toast.success(
+        isOnVacation ? "Shop reopened." : "Shop paused for vacation."
+      );
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update vacation mode.");
+    }
+  };
+
   return (
     <>
       <div>
@@ -103,13 +135,23 @@ export const SellerGeneralSection = ({ seller }: { seller: VendorSeller }) => {
           <div className="flex items-center justify-between">
             <Heading>{seller.email || seller.name}</Heading>
             <div className="flex items-center gap-2">
-              <SellerStatusBadge status={seller.store_status || "pending"} />
+              <SellerStatusBadge
+                status={seller.store_status || "pending"}
+                accountStatus={seller.account_status}
+              />
               <ActionsButton
                 actions={[
                   {
                     label: "Edit",
                     onClick: () => navigate(`/sellers/${seller.id}/edit`),
                     icon: <PencilSquare />,
+                  },
+                  {
+                    label: isOnVacation
+                      ? "Reopen shop"
+                      : "Pause shop (vacation)",
+                    onClick: () => handleVacation(),
+                    icon: <Moon />,
                   },
                   {
                     label:

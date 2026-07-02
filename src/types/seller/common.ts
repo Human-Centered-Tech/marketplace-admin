@@ -73,6 +73,10 @@ export interface VendorSeller {
   name: string;
   description?: string | null;
   store_status: string;
+  // Friendly, computed account state from the backend seller response. May be
+  // absent on older payloads — callers must fall back to store_status.
+  account_status?: "active" | "on_vacation" | "draft" | "suspended" | null;
+  is_on_vacation?: boolean | null;
   handle: string;
   email?: string | null;
   phone?: string | null;
