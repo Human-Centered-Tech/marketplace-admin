@@ -29,6 +29,7 @@ import { GalleryEditor } from "./gallery-editor"
 import { PremiumStatesEditor } from "./premium-states"
 import { ServicedStatesEditor } from "./serviced-states"
 import { FeaturedHomepageSection } from "./featured-homepage-section"
+import { TierOverrideSection } from "./tier-override"
 
 export const DirectoryDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -179,6 +180,7 @@ export const DirectoryDetail = () => {
             </Text>
           </div>
         </div>
+        <TierOverrideSection listing={listing} />
       </Container>
 
       {/* Parish Affiliations */}
