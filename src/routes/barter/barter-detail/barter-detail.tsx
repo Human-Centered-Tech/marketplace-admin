@@ -4,6 +4,7 @@ import { useState } from "react"
 import {
   useBarterListing,
   useModerateBarterListing,
+  useDeleteBarterListing,
 } from "../../../hooks/api/barter"
 
 const moderationColors: Record<string, "green" | "orange" | "red" | "grey"> = {
@@ -17,7 +18,9 @@ export const BarterDetail = () => {
   const navigate = useNavigate()
   const { data, isLoading } = useBarterListing(id!)
   const moderateMutation = useModerateBarterListing()
+  const deleteMutation = useDeleteBarterListing()
   const [notes, setNotes] = useState("")
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const listing = (data as any)?.listing
 
@@ -45,6 +48,11 @@ export const BarterDetail = () => {
       action,
       notes: notes || undefined,
     })
+    navigate("/barter")
+  }
+
+  const handleDelete = async () => {
+    await deleteMutation.mutateAsync(id!)
     navigate("/barter")
   }
 
@@ -113,6 +121,36 @@ export const BarterDetail = () => {
                 {listing.looking_for}
               </Text>
             </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-4">
+          {!showDeleteConfirm ? (
+            <Button
+              variant="danger"
+              size="small"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete Listing
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="danger"
+                size="small"
+                onClick={handleDelete}
+                isLoading={deleteMutation.isPending}
+              >
+                Confirm Delete
+              </Button>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </Button>
+            </>
           )}
         </div>
       </Container>

@@ -71,3 +71,19 @@ export const useModerateBarterListing = () => {
     },
   })
 }
+
+export const useDeleteBarterListing = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      sdk.client.fetch(`/admin/barter/listings/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: barterListingQueryKeys.all,
+      })
+    },
+  })
+}
