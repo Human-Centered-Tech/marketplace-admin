@@ -34,6 +34,8 @@ export const NetworkingEvents = () => {
     event_type: "general" as "general" | "featured",
     // Custom "Event Format" agenda -> saved into metadata.format on create.
     event_format: "",
+    // Zoom join link attendees see on the event page (model column).
+    zoom_join_url: "",
   })
 
   const { events, count, isLoading } = useNetworkingEvents(
@@ -44,13 +46,14 @@ export const NetworkingEvents = () => {
 
   const handleCreate = async () => {
     // event_format isn't a model column — send it inside metadata.format.
-    const { event_format, ...rest } = form
+    const { event_format, zoom_join_url, ...rest } = form
     await createMutation.mutateAsync({
       ...rest,
       // Eastern wall-clock -> real UTC instant.
       event_date: eventInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
+      ...(zoom_join_url.trim() ? { zoom_join_url: zoom_join_url.trim() } : {}),
       ...(event_format.trim()
         ? { metadata: { format: event_format.trim() } }
         : {}),
@@ -65,6 +68,7 @@ export const NetworkingEvents = () => {
       max_participants: 20,
       event_type: "general",
       event_format: "",
+      zoom_join_url: "",
     })
   }
 
@@ -220,6 +224,23 @@ export const NetworkingEvents = () => {
             </div>
             <div className="mb-4">
               <Text className="font-medium mb-1 text-sm">
+                Zoom Meeting Link (optional)
+              </Text>
+              <Input
+                type="url"
+                placeholder="https://us06web.zoom.us/j/…"
+                value={form.zoom_join_url}
+                onChange={(e) =>
+                  setForm({ ...form, zoom_join_url: e.target.value })
+                }
+              />
+              <Text className="text-ui-fg-subtle text-xs mt-1">
+                The Zoom join link attendees see on the event page. Can be added
+                or changed later.
+              </Text>
+            </div>
+            <div className="mb-4">
+              <Text className="font-medium mb-1 text-sm">
                 Event Graphic (optional)
               </Text>
               <HeroImageInput
@@ -261,7 +282,10 @@ export const NetworkingEvents = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Text className="text-ui-fg-subtle text-xs">
-                    {event.rsvp_count ?? 0} RSVPs
+                    {event.rsvps?.filter(
+                      (r: any) => r.status === "confirmed"
+                    ).length ?? 0}{" "}
+                    RSVPs
                   </Text>
                   {event.event_type === "featured" && (
                     <Badge color="purple">Featured</Badge>

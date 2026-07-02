@@ -63,6 +63,8 @@ export const NetworkingEventDetail = () => {
       // Custom "Event Format" agenda. Stored in metadata.format (no dedicated
       // column); empty = storefront shows the standard agenda.
       event_format: event.metadata?.format || "",
+      // Zoom join link attendees see on the event page (existing model column).
+      zoom_join_url: event.zoom_join_url || "",
     })
     setEditing(true)
   }
@@ -70,7 +72,7 @@ export const NetworkingEventDetail = () => {
   const handleUpdate = async () => {
     // event_format isn't a model column — fold it into the metadata JSON
     // (merging existing keys) instead of sending it as a top-level field.
-    const { event_format, ...rest } = form
+    const { event_format, zoom_join_url, ...rest } = form
     await updateMutation.mutateAsync({
       id: id!,
       ...rest,
@@ -78,6 +80,12 @@ export const NetworkingEventDetail = () => {
       event_date: eventInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
+      // Trim to a real link or clear it (null) so the storefront's
+      // `if (zoom_join_url)` check stays clean.
+      zoom_join_url:
+        typeof zoom_join_url === "string" && zoom_join_url.trim()
+          ? zoom_join_url.trim()
+          : null,
       metadata: {
         ...(event.metadata || {}),
         format:
@@ -152,7 +160,11 @@ export const NetworkingEventDetail = () => {
               <div>
                 <Text className="font-medium mb-1">RSVP Count</Text>
                 <Text className="text-ui-fg-subtle text-sm">
-                  {event.rsvp_count ?? 0}
+                  {/* Backend returns the rsvps array, not an rsvp_count field —
+                      count confirmed RSVPs (matches the storefront). */}
+                  {event.rsvps?.filter(
+                    (r: any) => r.status === "confirmed"
+                  ).length ?? 0}
                 </Text>
               </div>
               <div>
@@ -324,6 +336,24 @@ export const NetworkingEventDetail = () => {
                 Overrides the standard agenda for this event. Leave blank to use
                 the default (Opening Prayer · Networking Rounds · Closing
                 Reflection).
+              </Text>
+            </div>
+            <div className="mb-4">
+              <Text className="font-medium mb-1 text-sm">
+                Zoom Meeting Link (optional)
+              </Text>
+              <Input
+                type="url"
+                placeholder="https://us06web.zoom.us/j/…"
+                value={form.zoom_join_url || ""}
+                onChange={(e) =>
+                  setForm({ ...form, zoom_join_url: e.target.value })
+                }
+              />
+              <Text className="text-ui-fg-subtle text-xs mt-1">
+                The Zoom join link attendees see on the event page. (Automatic
+                Zoom meeting creation is coming later — for now, paste the link
+                here.)
               </Text>
             </div>
             <div className="mb-4">
