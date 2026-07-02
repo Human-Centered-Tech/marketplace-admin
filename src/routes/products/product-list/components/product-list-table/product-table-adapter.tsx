@@ -32,7 +32,12 @@ export function createProductTableAdapter(): TableAdapter<HttpTypes.AdminProduct
       )
       return { data: products, count, isLoading, isError, error }
     },
-    getRowHref: (row) => `/products/${row.id}`,
+    // Carry the current list search params (offset/query, incl. this stack's
+    // "p"-prefix) onto the row link so returning from a product keeps the page.
+    getRowHref: (row) =>
+      `/products/${row.id}${
+        typeof window !== "undefined" ? window.location.search : ""
+      }`,
   })
 }
 

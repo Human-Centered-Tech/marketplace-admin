@@ -91,7 +91,11 @@ export const ProductListTable = () => {
         pagination
         isLoading={isLoading}
         queryObject={raw}
-        navigateTo={(row) => `${row.original.id}`}
+        // Preserve the list's search params (?offset=…&q=…) on the row link so
+        // opening a product and coming back keeps you on the same page instead
+        // of snapping to page 1 of ~284. The detail renders in the <Outlet/>
+        // below, so the parent list re-reads offset from the URL.
+        navigateTo={(row) => `${row.original.id}${location.search}`}
         orderBy={[
           { key: "title", label: t("fields.title") },
           { key: "created_at", label: t("fields.createdAt") },
