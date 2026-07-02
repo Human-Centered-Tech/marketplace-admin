@@ -1,4 +1,4 @@
-import { Container, Heading, Text, Badge, Button, Textarea } from "@medusajs/ui"
+import { Container, Heading, Text, Badge, Button, Textarea, toast } from "@medusajs/ui"
 import { useParams, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import {
@@ -52,8 +52,17 @@ export const BarterDetail = () => {
   }
 
   const handleDelete = async () => {
-    await deleteMutation.mutateAsync(id!)
-    navigate("/barter")
+    try {
+      await deleteMutation.mutateAsync(id!)
+      toast.success("Listing deleted")
+      navigate("/barter")
+    } catch (e: any) {
+      // Previously this rejection was swallowed, so a failed delete looked like
+      // the button did nothing. Surface it instead.
+      toast.error(
+        `Could not delete listing: ${e?.message || "unknown error"}`
+      )
+    }
   }
 
   return (
