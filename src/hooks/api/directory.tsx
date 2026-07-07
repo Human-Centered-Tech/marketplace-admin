@@ -335,6 +335,61 @@ export const useDeleteDirectoryParish = () => {
   })
 }
 
+// Parish affiliations (a listing's parish links — the admin editor)
+
+export const useListingAffiliations = (listingId: string) => {
+  const { data, ...other } = useQuery({
+    queryKey: [...directoryListingQueryKeys.detail(listingId), "affiliations"],
+    queryFn: () =>
+      sdk.client.fetch<{
+        affiliations: any[]
+        limit: number
+        remaining: number
+      }>(`/admin/directory/listings/${listingId}/affiliations`, {
+        method: "GET",
+      }),
+    enabled: !!listingId,
+  })
+  return {
+    affiliations: data?.affiliations,
+    limit: data?.limit,
+    remaining: data?.remaining,
+    ...other,
+  }
+}
+
+export const useAddListingAffiliation = (listingId: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (parishId: string) =>
+      sdk.client.fetch(
+        `/admin/directory/listings/${listingId}/affiliations`,
+        { method: "POST", body: { parish_id: parishId } }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.all,
+      })
+    },
+  })
+}
+
+export const useRemoveListingAffiliation = (listingId: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (affiliationId: string) =>
+      sdk.client.fetch(
+        `/admin/directory/listings/${listingId}/affiliations`,
+        { method: "DELETE", body: { affiliation_id: affiliationId } }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.all,
+      })
+    },
+  })
+}
+
 // Badges
 
 export const useDirectoryBadges = () => {

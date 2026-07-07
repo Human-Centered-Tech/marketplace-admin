@@ -24,6 +24,7 @@ import {
 import { useSeller } from "../../../hooks/api/sellers"
 import { BadgeAssignment } from "./badge-assignment"
 import { CategoryEditor } from "./category-editor"
+import { ParishAffiliations } from "./parish-affiliations"
 import { ExtendedFieldsEditor } from "./extended-fields"
 import { GalleryEditor } from "./gallery-editor"
 import { PremiumStatesEditor } from "./premium-states"
@@ -448,6 +449,9 @@ export const DirectoryDetail = () => {
       {/* Category assignment — change which directory category this
           listing appears under. */}
       <CategoryEditor listing={listing} />
+
+      {/* Parish affiliations — tier-capped; raise the tier above to add more. */}
+      <ParishAffiliations listing={listing} />
 
       {/* Homepage Featured Services toggle */}
       <FeaturedHomepageSection listingId={id!} />
