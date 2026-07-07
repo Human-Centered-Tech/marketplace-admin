@@ -354,6 +354,38 @@ export const useBusinessOwners = (
   return { owners: data?.owners, count: data?.count, ...other }
 }
 
+// Claim attempts (claim-flow rebuild 7/7) — every claim is recorded from
+// attestation on, so stalled/abandoned claims are visible for follow-up.
+
+export const claimIntentQueryKeys = queryKeysFactory("claim-intent")
+
+export const useClaimIntents = (
+  query?: Record<string, string | number | undefined>
+) => {
+  const { data, ...other } = useQuery({
+    queryKey: claimIntentQueryKeys.list(query),
+    queryFn: () =>
+      sdk.client.fetch<{ intents: any[]; count: number }>(
+        "/admin/directory/claim-intents",
+        { method: "GET", query }
+      ),
+  })
+  return { intents: data?.intents, count: data?.count, ...other }
+}
+
+export const useVoidClaimIntent = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      sdk.client.fetch(`/admin/directory/claim-intents/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: claimIntentQueryKeys.all })
+    },
+  })
+}
+
 // Parish affiliations (a listing's parish links — the admin editor)
 
 export const useListingAffiliations = (listingId: string) => {

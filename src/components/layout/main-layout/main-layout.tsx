@@ -265,6 +265,10 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
           to: "/directory/pending",
         },
         {
+          label: "Claim Attempts",
+          to: "/directory/claims",
+        },
+        {
           label: "Categories",
           to: "/directory/categories",
         },

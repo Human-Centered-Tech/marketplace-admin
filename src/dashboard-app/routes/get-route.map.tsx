@@ -856,6 +856,11 @@ export function getRouteMap({
                     import("../../routes/directory/directory-pending"),
                 },
                 {
+                  path: "claims",
+                  lazy: () =>
+                    import("../../routes/directory/directory-claims"),
+                },
+                {
                   path: ":id",
                   lazy: () =>
                     import("../../routes/directory/directory-detail"),
