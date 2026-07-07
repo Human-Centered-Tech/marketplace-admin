@@ -174,35 +174,33 @@ export const DirectoryDetail = () => {
               Tier: {listing.subscription_tier} | Status:{" "}
               {listing.subscription_status}
             </Text>
+            <Text
+              className={`text-sm mt-0.5 ${
+                listing.stripe_subscription_id
+                  ? "text-ui-fg-interactive"
+                  : "text-ui-fg-muted"
+              }`}
+            >
+              {listing.stripe_subscription_id
+                ? `✓ Membership linked (${listing.stripe_subscription_id})`
+                : "No Stripe membership linked"}
+            </Text>
           </div>
           <div>
-            <Text className="font-medium mb-1">Owner ID</Text>
+            <Text className="font-medium mb-1">Owner</Text>
             <Text className="text-ui-fg-subtle text-sm">
-              {listing.owner_id}
+              {listing.owner_id
+                ? `✓ Claimed — ${listing.owner_id}`
+                : "Unclaimed (no owner)"}
             </Text>
           </div>
         </div>
         <TierOverrideSection listing={listing} />
       </Container>
 
-      {/* Parish Affiliations */}
-      {listing.affiliations?.length > 0 && (
-        <Container>
-          <Heading level="h2" className="mb-4">
-            Parish Affiliations
-          </Heading>
-          <div className="divide-y">
-            {listing.affiliations.map((aff: any) => (
-              <div key={aff.id} className="py-2">
-                <Text className="font-medium">{aff.parish?.name}</Text>
-                <Text className="text-ui-fg-subtle text-sm">
-                  {aff.parish?.diocese} — {aff.parish?.city}, {aff.parish?.state}
-                </Text>
-              </div>
-            ))}
-          </div>
-        </Container>
-      )}
+      {/* (Parish affiliations are shown + edited by the ParishAffiliations
+          editor further down — the old read-only block here was removed to
+          avoid two parish sections.) */}
 
       {/* Marketplace Storefront Link */}
       <Container>
