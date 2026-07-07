@@ -27,6 +27,7 @@ import { CategoryEditor } from "./category-editor"
 import { ParishAffiliations } from "./parish-affiliations"
 import { ExtendedFieldsEditor } from "./extended-fields"
 import { GalleryEditor } from "./gallery-editor"
+import { LogoCoverEditor } from "./logo-cover-editor"
 import { PremiumStatesEditor } from "./premium-states"
 import { ServicedStatesEditor } from "./serviced-states"
 import { FeaturedHomepageSection } from "./featured-homepage-section"
@@ -458,6 +459,9 @@ export const DirectoryDetail = () => {
 
       {/* Custom badge assignments — available for all listings */}
       <BadgeAssignment listingId={id!} />
+
+      {/* Logo + cover image upload/replace. */}
+      <LogoCoverEditor listing={listing} />
 
       {/* Photo gallery — up to 8 listing photos (gallery_urls). Vendors upload
           these from their dashboard; admins can now add/replace them too. */}
