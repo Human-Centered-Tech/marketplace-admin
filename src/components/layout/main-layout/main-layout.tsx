@@ -241,14 +241,23 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
         },
       ],
     },
+    // Account taxonomy (Brooke 7/7): Marketplace Storefronts = Mercur sellers
+    // (merchants' shops); Business Owners = customers who own directory
+    // listings (flagged Merchant when they also have a storefront);
+    // Directory Listings = the listings themselves.
     {
       icon: <Shopping />,
-      label: t("sellers.domain"),
+      label: "Marketplace Storefronts",
       to: "/sellers",
     },
     {
+      icon: <Users />,
+      label: "Business Owners",
+      to: "/business-owners",
+    },
+    {
       icon: <Buildings />,
-      label: "Directory",
+      label: "Directory Listings",
       to: "/directory",
       items: [
         {

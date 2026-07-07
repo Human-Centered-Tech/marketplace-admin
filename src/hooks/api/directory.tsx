@@ -335,6 +335,25 @@ export const useDeleteDirectoryParish = () => {
   })
 }
 
+// Business owners — the PEOPLE view (Brooke's taxonomy 7/7): customers who
+// own directory listings, flagged Merchant when they also have a storefront.
+
+export const businessOwnerQueryKeys = queryKeysFactory("business-owner")
+
+export const useBusinessOwners = (
+  query?: Record<string, string | number | undefined>
+) => {
+  const { data, ...other } = useQuery({
+    queryKey: businessOwnerQueryKeys.list(query),
+    queryFn: () =>
+      sdk.client.fetch<{ owners: any[]; count: number }>(
+        "/admin/directory/business-owners",
+        { method: "GET", query }
+      ),
+  })
+  return { owners: data?.owners, count: data?.count, ...other }
+}
+
 // Parish affiliations (a listing's parish links — the admin editor)
 
 export const useListingAffiliations = (listingId: string) => {

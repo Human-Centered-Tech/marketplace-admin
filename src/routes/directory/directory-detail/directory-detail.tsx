@@ -68,11 +68,11 @@ export const DirectoryDetail = () => {
       setMigrateCustId("")
       if (res.seller_linked) {
         toast.success(
-          "Membership linked — listing marked active and tied to the member's shop."
+          "Membership linked — listing marked active and tied to the member's shop (Merchant)."
         )
       } else {
-        toast.warning(
-          "Membership linked and marked active, but this account isn't a merchant yet — no shop to attach."
+        toast.success(
+          "Membership linked and marked active — this member is a Business Owner (directory listing, no storefront). Correct for service businesses."
         )
       }
     } catch (e: any) {
@@ -263,41 +263,59 @@ export const DirectoryDetail = () => {
             </Button>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Enter the user's account email..."
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-1"
-            />
-            <Button
-              variant="primary"
-              size="small"
-              disabled={!email.trim()}
-              onClick={async () => {
-                try {
-                  const res = await linkMutation.mutateAsync({
-                    id: id!,
-                    email: email.trim(),
-                  })
-                  setEmail("")
-                  if (res.seller_linked) {
-                    toast.success("Linked the listing to the user's shop.")
-                  } else {
-                    toast.warning(
-                      "Linked to the customer, but they aren't a merchant yet — no shop to attach."
-                    )
+          <>
+            {/* Owner but no storefront = a BUSINESS OWNER (services business
+                with a directory listing only). That's a valid, complete state —
+                not an error (Brooke 7/7). The link form stays available in case
+                they later become a merchant. */}
+            {listing.owner_id && (
+              <div className="mb-3 p-2 text-sm bg-ui-bg-subtle border rounded">
+                <Text size="small">
+                  <span className="font-medium">Business Owner</span> — this
+                  listing is owned by a customer account with no marketplace
+                  storefront. That&rsquo;s the correct state for a
+                  service-based business.
+                </Text>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Enter the user's account email..."
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                variant="primary"
+                size="small"
+                disabled={!email.trim()}
+                onClick={async () => {
+                  try {
+                    const res = await linkMutation.mutateAsync({
+                      id: id!,
+                      email: email.trim(),
+                    })
+                    setEmail("")
+                    if (res.seller_linked) {
+                      toast.success(
+                        "Linked — this member is a Merchant (listing + storefront attached)."
+                      )
+                    } else {
+                      toast.success(
+                        "Linked — this member is a Business Owner (directory listing, no storefront). Correct for service businesses."
+                      )
+                    }
+                  } catch (e: any) {
+                    toast.error(e?.message || "Could not link — check the email.")
                   }
-                } catch (e: any) {
-                  toast.error(e?.message || "Could not link — check the email.")
-                }
-              }}
-              isLoading={linkMutation.isPending}
-            >
-              Link
-            </Button>
-          </div>
+                }}
+                isLoading={linkMutation.isPending}
+              >
+                Link
+              </Button>
+            </div>
+          </>
         )}
         <Text className="text-ui-fg-subtle text-xs mt-2">
           Link by the user's account email — sets the owner and, if they're a

@@ -820,6 +820,25 @@ export function getRouteMap({
               ],
             },
             {
+              // People view for the account taxonomy (Brooke 7/7): customers
+              // who own directory listings, flagged Merchant when they also
+              // have a storefront.
+              path: "/business-owners",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Business Owners",
+              },
+              children: [
+                {
+                  path: "",
+                  lazy: () =>
+                    import(
+                      "../../routes/business-owners/business-owners-list"
+                    ),
+                },
+              ],
+            },
+            {
               path: "/directory",
               errorElement: <ErrorBoundary />,
               handle: {
