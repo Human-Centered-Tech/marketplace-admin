@@ -129,7 +129,10 @@ export const DirectoryDetail = () => {
               <Text className="text-ui-fg-subtle">{listing.slug}</Text>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {listing.admin_hidden && (
+              <Badge color="red">Hidden</Badge>
+            )}
             <Badge
               color={
                 listing.verification_status === "approved"
@@ -142,6 +145,28 @@ export const DirectoryDetail = () => {
               {listing.verification_status}
             </Badge>
             <Badge>{listing.subscription_tier}</Badge>
+            <Button
+              variant="secondary"
+              size="small"
+              isLoading={updateMutation.isPending}
+              onClick={async () => {
+                try {
+                  await updateMutation.mutateAsync({
+                    id: listing.id,
+                    admin_hidden: !listing.admin_hidden,
+                  })
+                  toast.success(
+                    listing.admin_hidden
+                      ? "Listing is now visible in the directory."
+                      : "Listing hidden from the directory."
+                  )
+                } catch (e: any) {
+                  toast.error(e?.message || "Could not update visibility.")
+                }
+              }}
+            >
+              {listing.admin_hidden ? "Show in directory" : "Hide from directory"}
+            </Button>
           </div>
         </div>
 
