@@ -5,7 +5,10 @@ import { useClaimIntents, useVoidClaimIntent } from "../../../hooks/api/director
 
 const PAGE_SIZE = 50
 
-const statusColors: Record<string, "orange" | "green" | "grey"> = {
+const statusColors: Record<string, "orange" | "green" | "grey" | "blue"> = {
+  // "started" (7/9): a funnel breadcrumb — someone entered the merchant claim
+  // funnel but hasn't attested/registered yet. May have no email captured.
+  started: "blue",
   attested: "orange",
   completed: "green",
   voided: "grey",
@@ -68,7 +71,7 @@ export const DirectoryClaims = () => {
   const handleVoid = async (intent: any) => {
     const confirmed = await prompt({
       title: "Void this claim attempt?",
-      description: `${intent.email} will no longer have a claim in progress on "${intent.business_name}". The listing becomes claimable by others. The attempt stays on record.`,
+      description: `${intent.email || "This visitor"} will no longer have a claim in progress on "${intent.business_name}". The listing becomes claimable by others. The attempt stays on record.`,
       confirmText: "Void claim",
       cancelText: "Cancel",
     })
@@ -101,7 +104,7 @@ export const DirectoryClaims = () => {
           />
         </div>
         <div className="flex gap-2">
-          {["", "attested", "completed", "voided"].map((s) => (
+          {["", "started", "attested", "completed", "voided"].map((s) => (
             <Button
               key={s || "all"}
               variant={statusFilter === s ? "primary" : "secondary"}
@@ -134,8 +137,11 @@ export const DirectoryClaims = () => {
                     {intent.business_name || intent.listing_id}
                   </Text>
                   <Text className="text-ui-fg-subtle text-xs">
-                    {intent.email} ·{" "}
+                    {intent.email || "no email captured yet"} ·{" "}
                     {new Date(intent.created_at).toLocaleString()}
+                    {intent.status === "started" && intent.metadata?.step
+                      ? ` · reached: ${intent.metadata.step}`
+                      : ""}
                   </Text>
                 </div>
                 <div
@@ -148,7 +154,7 @@ export const DirectoryClaims = () => {
                   <Badge color={statusColors[intent.status] || "grey"}>
                     {intent.status}
                   </Badge>
-                  {intent.status === "attested" && (
+                  {["attested", "started"].includes(intent.status) && (
                     <Button
                       variant="secondary"
                       size="small"
