@@ -13,6 +13,12 @@ import {
   formatEventEastern,
 } from "../../../lib/event-datetime"
 import { HeroImageInput } from "../../gift-guides/components/hero-image-input"
+import {
+  EventLocationFields,
+  EVENT_LOCATION_TYPES,
+  locationTypeNeedsVenue,
+  type EventLocationType,
+} from "../components/event-location-fields"
 
 const statusColors: Record<string, "green" | "orange" | "red" | "grey"> = {
   published: "green",
@@ -60,6 +66,10 @@ export const NetworkingEventDetail = () => {
       duration_minutes: event.duration_minutes || 60,
       max_participants: event.max_participants || 20,
       event_type: event.event_type || "general",
+      // Events created before the column existed come back "virtual" (the DB
+      // default), which is correct — they were all Zoom.
+      location_type: (event.location_type || "virtual") as EventLocationType,
+      location: event.location || "",
       // Custom "Event Format" agenda. Stored in metadata.format (no dedicated
       // column); empty = storefront shows the standard agenda.
       event_format: event.metadata?.format || "",
@@ -72,7 +82,7 @@ export const NetworkingEventDetail = () => {
   const handleUpdate = async () => {
     // event_format isn't a model column — fold it into the metadata JSON
     // (merging existing keys) instead of sending it as a top-level field.
-    const { event_format, zoom_join_url, ...rest } = form
+    const { event_format, zoom_join_url, location, ...rest } = form
     await updateMutation.mutateAsync({
       id: id!,
       ...rest,
@@ -80,6 +90,15 @@ export const NetworkingEventDetail = () => {
       event_date: eventInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
+      // Venue only means anything for in_person/hybrid. Clearing it back to null
+      // when the event flips to virtual keeps a stale address out of the event
+      // page and the .ics invite.
+      location:
+        locationTypeNeedsVenue(form.location_type) &&
+        typeof location === "string" &&
+        location.trim()
+          ? location.trim()
+          : null,
       // Trim to a real link or clear it (null) so the storefront's
       // `if (zoom_join_url)` check stays clean.
       zoom_join_url:
@@ -105,6 +124,17 @@ export const NetworkingEventDetail = () => {
     await deleteMutation.mutateAsync(id!)
     navigate("/networking")
   }
+
+  // A physical event with no venue line is useless to attendees (it's also what
+  // the .ics invite uses as LOCATION), so require it for in_person + hybrid.
+  const missingVenue =
+    locationTypeNeedsVenue(form.location_type) &&
+    !String(form.location || "").trim()
+
+  const locationLabel =
+    EVENT_LOCATION_TYPES.find(
+      (o) => o.value === (event.location_type || "virtual")
+    )?.label ?? "Virtual"
 
   return (
     <div className="flex flex-col gap-4">
@@ -155,6 +185,13 @@ export const NetworkingEventDetail = () => {
                 <Text className="font-medium mb-1">Max Participants</Text>
                 <Text className="text-ui-fg-subtle text-sm">
                   {event.max_participants}
+                </Text>
+              </div>
+              <div>
+                <Text className="font-medium mb-1">Location</Text>
+                <Text className="text-ui-fg-subtle text-sm">
+                  {locationLabel}
+                  {event.location ? ` · ${event.location}` : ""}
                 </Text>
               </div>
               <div>
@@ -306,6 +343,11 @@ export const NetworkingEventDetail = () => {
                 ))}
               </div>
             </div>
+            <EventLocationFields
+              locationType={form.location_type}
+              location={form.location || ""}
+              onChange={(next) => setForm({ ...form, ...next })}
+            />
             <div className="mb-4">
               <Text className="font-medium mb-1 text-sm">Description</Text>
               <Textarea
@@ -365,12 +407,18 @@ export const NetworkingEventDetail = () => {
                 onChange={(url) => setForm({ ...form, image_url: url })}
               />
             </div>
+            {missingVenue && (
+              <Text className="text-ui-fg-subtle text-xs mb-2">
+                Add a venue / address for an in-person or hybrid event.
+              </Text>
+            )}
             <div className="flex gap-2">
               <Button
                 variant="primary"
                 size="small"
                 onClick={handleUpdate}
                 isLoading={updateMutation.isPending}
+                disabled={missingVenue}
               >
                 Save
               </Button>
