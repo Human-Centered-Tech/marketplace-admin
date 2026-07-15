@@ -241,10 +241,14 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
         },
       ],
     },
-    // Account taxonomy (Brooke 7/7): Marketplace Storefronts = Mercur sellers
-    // (merchants' shops); Business Owners = customers who own directory
-    // listings (flagged Merchant when they also have a storefront);
-    // Directory Listings = the listings themselves.
+    // Account taxonomy (Brooke 7/7, refined 7/14):
+    //   Marketplace Storefronts = sellers who ACTUALLY SELL (products / a live
+    //     shop). Business-Owner seller rows exist too — they're the messaging
+    //     inbox + vendor login for directory-only members — but they are NOT
+    //     storefronts, so /sellers defaults to the merchants tab and never
+    //     offers a delete. See @lib/seller-business-type.
+    //   Business Owners = the PEOPLE view: customers who own directory listings.
+    //   Directory Listings = the listings themselves.
     {
       icon: <Shopping />,
       label: "Marketplace Storefronts",
