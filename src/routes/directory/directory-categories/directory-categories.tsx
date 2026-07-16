@@ -6,6 +6,7 @@ import {
   Button,
   Input,
   Label,
+  toast,
 } from "@medusajs/ui"
 import {
   useDirectoryCategories,
@@ -55,7 +56,15 @@ export const DirectoryCategories = () => {
 
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this category?")) {
-      await deleteCategory.mutateAsync(id)
+      try {
+        await deleteCategory.mutateAsync(id)
+        toast.success("Category deleted")
+      } catch (e: any) {
+        // The backend answers 409 with a human explanation when the category
+        // is some listing's primary category. Before this, the rejection was
+        // unhandled and the button appeared to do nothing (Brooke, 7/16).
+        toast.error(e?.message || "Could not delete this category.")
+      }
     }
   }
 
