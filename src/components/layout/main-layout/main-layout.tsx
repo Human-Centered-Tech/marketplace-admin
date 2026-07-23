@@ -273,6 +273,10 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
           to: "/directory/claims",
         },
         {
+          label: "Memberships to Link",
+          to: "/directory/unlinked",
+        },
+        {
           label: "Categories",
           to: "/directory/categories",
         },

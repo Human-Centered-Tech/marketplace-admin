@@ -861,6 +861,11 @@ export function getRouteMap({
                     import("../../routes/directory/directory-claims"),
                 },
                 {
+                  path: "unlinked",
+                  lazy: () =>
+                    import("../../routes/directory/directory-unlinked"),
+                },
+                {
                   path: ":id",
                   lazy: () =>
                     import("../../routes/directory/directory-detail"),
