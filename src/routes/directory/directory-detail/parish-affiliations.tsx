@@ -48,6 +48,12 @@ export const ParishAffiliations = ({ listing }: { listing: any }) => {
       ? (parishes ?? []).filter((p: any) => !affiliatedParishIds.has(p.id))
       : []
   const atCap = typeof remaining === "number" ? remaining <= 0 : false
+  // Grandfathered listings can sit ABOVE the cap (the tier ladder's top slot
+  // went 25 → 10 on 2026-07-13, and a tier downgrade/pin lowers the cap without
+  // pruning existing rows). Nothing deletes them automatically — say so plainly
+  // so the count doesn't just read as a broken "17 of 10".
+  const overCap =
+    typeof limit === "number" && (affiliations?.length ?? 0) > limit
 
   const handleAdd = async (parishId: string) => {
     try {
@@ -76,9 +82,11 @@ export const ParishAffiliations = ({ listing }: { listing: any }) => {
           {typeof limit === "number" && (
             <>
               {(affiliations?.length ?? 0)} of {limit} used
-              {atCap
-                ? " — raise the tier above to add more."
-                : "."}
+              {overCap
+                ? " — over this tier's limit. Existing parishes are kept, but none can be added until enough are removed (or the tier is raised)."
+                : atCap
+                  ? " — raise the tier above to add more."
+                  : "."}
             </>
           )}
         </Text>

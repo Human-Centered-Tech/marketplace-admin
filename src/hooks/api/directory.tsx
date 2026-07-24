@@ -354,6 +354,24 @@ export const useBusinessOwners = (
   return { owners: data?.owners, count: data?.count, ...other }
 }
 
+// Grandfathered members whose listing is claimed + published but has no Stripe
+// subscription linked yet — Brooke's follow-up queue to link their existing sub.
+export const unlinkedMembershipQueryKeys = queryKeysFactory("unlinked-membership")
+
+export const useUnlinkedMemberships = (
+  query?: Record<string, string | number | undefined>
+) => {
+  const { data, ...other } = useQuery({
+    queryKey: unlinkedMembershipQueryKeys.list(query),
+    queryFn: () =>
+      sdk.client.fetch<{ listings: any[]; count: number }>(
+        "/admin/directory/unlinked-memberships",
+        { method: "GET", query }
+      ),
+  })
+  return { listings: data?.listings, count: data?.count, ...other }
+}
+
 // Claim attempts (claim-flow rebuild 7/7) — every claim is recorded from
 // attestation on, so stalled/abandoned claims are visible for follow-up.
 

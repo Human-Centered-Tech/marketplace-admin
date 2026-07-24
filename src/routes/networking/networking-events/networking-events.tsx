@@ -11,6 +11,11 @@ import {
   formatEventEastern,
 } from "../../../lib/event-datetime"
 import { HeroImageInput } from "../../gift-guides/components/hero-image-input"
+import {
+  EventLocationFields,
+  locationTypeNeedsVenue,
+  type EventLocationType,
+} from "../components/event-location-fields"
 
 const statusColors: Record<string, "green" | "orange" | "red" | "grey"> = {
   published: "green",
@@ -32,6 +37,10 @@ export const NetworkingEvents = () => {
     duration_minutes: 60,
     max_participants: 20,
     event_type: "general" as "general" | "featured",
+    // Where the event happens. The column defaults to "virtual" server-side, so
+    // without this control every event silently stayed virtual.
+    location_type: "virtual" as EventLocationType,
+    location: "",
     // Custom "Event Format" agenda -> saved into metadata.format on create.
     event_format: "",
     // Zoom join link attendees see on the event page (model column).
@@ -46,13 +55,19 @@ export const NetworkingEvents = () => {
 
   const handleCreate = async () => {
     // event_format isn't a model column — send it inside metadata.format.
-    const { event_format, zoom_join_url, ...rest } = form
+    const { event_format, zoom_join_url, location, ...rest } = form
     await createMutation.mutateAsync({
       ...rest,
       // Eastern wall-clock -> real UTC instant.
       event_date: eventInputToISO(form.event_date),
       duration_minutes: Number(form.duration_minutes),
       max_participants: Number(form.max_participants),
+      // Venue only means anything for in_person/hybrid; send null otherwise so a
+      // virtual event never carries a stale address.
+      location:
+        locationTypeNeedsVenue(form.location_type) && location.trim()
+          ? location.trim()
+          : null,
       ...(zoom_join_url.trim() ? { zoom_join_url: zoom_join_url.trim() } : {}),
       ...(event_format.trim()
         ? { metadata: { format: event_format.trim() } }
@@ -67,10 +82,17 @@ export const NetworkingEvents = () => {
       duration_minutes: 60,
       max_participants: 20,
       event_type: "general",
+      location_type: "virtual",
+      location: "",
       event_format: "",
       zoom_join_url: "",
     })
   }
+
+  // A physical event with no venue line is useless to attendees (it's also what
+  // the .ics invite uses as LOCATION), so require it for in_person + hybrid.
+  const missingVenue =
+    locationTypeNeedsVenue(form.location_type) && !form.location.trim()
 
   return (
     <div className="flex flex-col gap-4">
@@ -197,6 +219,11 @@ export const NetworkingEvents = () => {
                 ))}
               </div>
             </div>
+            <EventLocationFields
+              locationType={form.location_type}
+              location={form.location}
+              onChange={(next) => setForm({ ...form, ...next })}
+            />
             <div className="mb-4">
               <Text className="font-medium mb-1 text-sm">Description</Text>
               <Textarea
@@ -253,10 +280,15 @@ export const NetworkingEvents = () => {
               size="small"
               onClick={handleCreate}
               isLoading={createMutation.isPending}
-              disabled={!form.title || !form.event_date}
+              disabled={!form.title || !form.event_date || missingVenue}
             >
               Create
             </Button>
+            {missingVenue && (
+              <Text className="text-ui-fg-subtle text-xs mt-2">
+                Add a venue / address for an in-person or hybrid event.
+              </Text>
+            )}
           </div>
         )}
 
@@ -290,6 +322,14 @@ export const NetworkingEvents = () => {
                   {event.event_type === "featured" && (
                     <Badge color="purple">Featured</Badge>
                   )}
+                  {event.location_type &&
+                    event.location_type !== "virtual" && (
+                      <Badge color="blue">
+                        {event.location_type === "hybrid"
+                          ? "Hybrid"
+                          : "In Person"}
+                      </Badge>
+                    )}
                   <Badge color={statusColors[event.status] || "grey"}>
                     {event.status}
                   </Badge>

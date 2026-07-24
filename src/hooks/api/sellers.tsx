@@ -151,6 +151,106 @@ export const useSellers = (
   };
 };
 
+/**
+ * Every seller, with just enough of its commerce footprint to tell a Merchant
+ * apart from a Business Owner (see @lib/seller-business-type for why a seller
+ * row alone proves nothing).
+ *
+ * Why the whole set rather than a server-paginated page: GET /admin/sellers
+ * (Mercur, node_modules) takes only `fields` / `limit` / `offset` — it cannot
+ * filter or count by business type, and the type is derived from linked
+ * products, so the counts and the pages have to be computed client-side or
+ * they'd lie. The payload is `products.id` + `products.status` per seller, a
+ * few tens of KB per hundred sellers; fetched once and cached.
+ *
+ * The relation fields are requested with a fallback ladder: if a Medusa/Mercur
+ * version rejects a linked field, we degrade to the plain seller list and
+ * report `classified: false` so the UI can show every seller unfiltered rather
+ * than an empty page.
+ */
+const SELLER_CLASSIFY_FIELD_SETS = [
+  "id,email,name,handle,created_at,store_status,products.id,products.status,payout_account.id",
+  "id,email,name,handle,created_at,store_status,products.id,products.status",
+  "id,email,name,handle,created_at,store_status",
+];
+
+const CLASSIFY_PAGE_SIZE = 100;
+const CLASSIFY_MAX_SELLERS = 5000;
+
+export type ClassifiableVendorSeller = VendorSeller & {
+  store_status?: string;
+  products?: { id: string; status?: string | null }[];
+  payout_account?: { id: string } | null;
+};
+
+const fetchAllSellers = async (fields: string) => {
+  const sellers: ClassifiableVendorSeller[] = [];
+  let offset = 0;
+
+  for (;;) {
+    const page = await sdk.client.fetch<{
+      sellers: ClassifiableVendorSeller[];
+      count?: number;
+    }>("/admin/sellers", {
+      method: "GET",
+      query: { fields, limit: CLASSIFY_PAGE_SIZE, offset },
+    });
+
+    const batch = page?.sellers ?? [];
+    sellers.push(...batch);
+
+    const total = page?.count ?? sellers.length;
+    offset += CLASSIFY_PAGE_SIZE;
+
+    if (
+      batch.length < CLASSIFY_PAGE_SIZE ||
+      sellers.length >= total ||
+      offset >= CLASSIFY_MAX_SELLERS
+    ) {
+      break;
+    }
+  }
+
+  return sellers;
+};
+
+export const useClassifiedSellers = () => {
+  const { data, ...other } = useQuery<
+    { sellers: ClassifiableVendorSeller[]; classified: boolean },
+    Error
+  >({
+    queryKey: sellerQueryKeys.list({ scope: "classified" }),
+    queryFn: async () => {
+      let lastError: unknown;
+
+      for (let i = 0; i < SELLER_CLASSIFY_FIELD_SETS.length; i++) {
+        try {
+          const sellers = await fetchAllSellers(SELLER_CLASSIFY_FIELD_SETS[i]);
+          return {
+            sellers,
+            // The last field-set carries no product/payout data — nothing to
+            // classify with.
+            classified: i < SELLER_CLASSIFY_FIELD_SETS.length - 1,
+          };
+        } catch (e) {
+          lastError = e;
+        }
+      }
+
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Failed to load sellers");
+    },
+    staleTime: 60_000,
+  });
+
+  return {
+    sellers: data?.sellers,
+    classified: data?.classified ?? false,
+    ...other,
+  };
+};
+
 export const useSeller = (id: string) => {
   return useQuery<{ seller: VendorSeller }, Error, { seller: VendorSeller }>({
     queryKey: sellerQueryKeys.detail(id),

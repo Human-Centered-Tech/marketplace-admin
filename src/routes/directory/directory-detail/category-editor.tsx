@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Container, Heading, Text, Button, Select } from "@medusajs/ui"
+import { Container, Heading, Text, Button, Select, toast } from "@medusajs/ui"
 import {
   useDirectoryCategories,
   useUpdateDirectoryListing,
@@ -32,9 +32,18 @@ export const CategoryEditor = ({ listing }: { listing: any }) => {
 
   const handleSave = async () => {
     const categoryIds = [primary, secondary].filter(Boolean)
-    await update.mutateAsync({ id: listing.id, category_ids: categoryIds })
-    setSavedBanner(true)
-    setTimeout(() => setSavedBanner(false), 2500)
+    // handleSave used to await the mutation with NO catch — a failed PUT
+    // (401/409/500) was an unhandled rejection, so the button just stopped
+    // spinning and nothing happened, with no clue why. Same bug class as the
+    // category-delete swallow fixed 2026-07-17. Surface the backend's message
+    // so a save that doesn't stick tells us why instead of dying silently.
+    try {
+      await update.mutateAsync({ id: listing.id, category_ids: categoryIds })
+      setSavedBanner(true)
+      setTimeout(() => setSavedBanner(false), 2500)
+    } catch (e: any) {
+      toast.error(e?.message || "Couldn't save categories. Please try again.")
+    }
   }
 
   return (
