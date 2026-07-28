@@ -12,7 +12,14 @@ export const sdk = new Medusa({
   baseUrl: backendUrl,
 });
 
-// useful when you want to call the BE from the console and try things out quickly
-if (typeof window !== "undefined") {
+// Useful when you want to call the BE from the console and try things out quickly.
+// DEV ONLY: the previous guard was `typeof window !== "undefined"`, which is true in
+// every browser build — so production shipped a preconfigured, session-bound handle to
+// the whole `admin` namespace on the admin origin, i.e. a ready-made client for any
+// injected script. `__DEV__` is a Vite `define` (vite.config.mts), replaced with a
+// literal at build time, so this block is eliminated from the production bundle rather
+// than merely skipped. The `typeof` check keeps it safe in the tsup CJS/ESM build,
+// where Vite's defines are not applied and a bare `__DEV__` would be a ReferenceError.
+if (typeof __DEV__ !== "undefined" && __DEV__ && typeof window !== "undefined") {
   (window as any).__sdk = sdk;
 }
