@@ -23,6 +23,46 @@ export default defineConfig(({ mode }) => {
   const MEDUSA_PROJECT = env.VITE_MEDUSA_PROJECT || null;
   const sources = MEDUSA_PROJECT ? [MEDUSA_PROJECT] : [];
 
+  /**
+   * Security headers, applied to BOTH the dev server and `vite preview` — the
+   * latter is what serves production traffic (scripts/launch-admin.js), so the
+   * deployed admin previously sent none of these at all.
+   *
+   * CSP is deliberately REPORT-ONLY: it blocks nothing yet, it only reports.
+   * Promoting it to the enforcing `Content-Security-Policy` header is a
+   * follow-up that needs a run through the real app first — watch the console
+   * for violations, widen the directives that legitimately fire, then flip it.
+   *
+   * `connect-src` can only list the BUILD-TIME backend. The deployed backend is
+   * injected at container start into dist/runtime-config.js, so it may differ;
+   * add that origin (or a wildcard for the deploy host) before enforcing.
+   */
+  const CSP_REPORT_ONLY = [
+    "default-src 'self'",
+    "script-src 'self'",
+    // Vite and Tailwind both inject inline <style> blocks.
+    "style-src 'self' 'unsafe-inline'",
+    // Product, seller, and directory media come from arbitrary CDNs.
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src 'self' ${BACKEND_URL}`,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+
+  const SECURITY_HEADERS = {
+    // Enforcing. The admin is never meant to be framed; this is the real
+    // clickjacking control (CSP frame-ancestors above is report-only for now).
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    // Ignored by browsers over plain HTTP, so local dev is unaffected.
+    // No `preload` — that is a one-way door and belongs to whoever owns the domain.
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Content-Security-Policy-Report-Only": CSP_REPORT_ONLY,
+  };
+
   return {
     plugins: [
       inspect(),
@@ -59,11 +99,13 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: PORT,
       open: false,
+      headers: SECURITY_HEADERS,
       allowedHosts: PUBLIC_BASE_URL ? [PUBLIC_BASE_URL.replace('https://', '').replace('http://', '').split('/')[0]] : [],
     },
     preview: {
       host: true,
       port: PORT,
+      headers: SECURITY_HEADERS,
       // Allow all hosts. Vite 5.4+ blocks requests whose Host header isn't in
       // allowedHosts with a 403 ("Blocked request"). Deriving the list from
       // PUBLIC_BASE_URL broke Railway deploys: when the env var is unset at
