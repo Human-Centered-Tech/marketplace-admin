@@ -46,6 +46,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
+      // Debug-only globals (e.g. window.__sdk) gate on this so they are dead-code
+      // eliminated from the production bundle rather than merely skipped at runtime.
+      __DEV__: JSON.stringify(mode !== "production"),
       __BASE__: JSON.stringify(BASE),
       __BACKEND_URL__: JSON.stringify(BACKEND_URL),
       __STOREFRONT_URL__: JSON.stringify(STOREFRONT_URL),
