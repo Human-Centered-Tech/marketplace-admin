@@ -34,14 +34,27 @@ export const DirectoryCategories = () => {
   const [form, setForm] = useState<CategoryForm>(emptyForm)
 
   const handleSubmit = async () => {
-    if (editingId) {
-      await updateCategory.mutateAsync({ id: editingId, ...form })
-    } else {
-      await createCategory.mutateAsync(form)
+    try {
+      if (editingId) {
+        await updateCategory.mutateAsync({ id: editingId, ...form })
+      } else {
+        await createCategory.mutateAsync(form)
+      }
+      toast.success(editingId ? "Category updated." : "Category created.")
+      setForm(emptyForm)
+      setShowForm(false)
+      setEditingId(null)
+    } catch (e: any) {
+      // Same silent-failure shape that hid the category-save bug on the
+      // listing detail page (fixed 7/21) — a slug conflict here used to close
+      // nothing and say nothing. Keep the form open so the entry survives.
+      toast.error(
+        e?.message ||
+          (editingId
+            ? "Couldn't save the category."
+            : "Couldn't create the category.")
+      )
     }
-    setForm(emptyForm)
-    setShowForm(false)
-    setEditingId(null)
   }
 
   const handleEdit = (category: any) => {

@@ -9,6 +9,7 @@ import {
   Textarea,
   Select,
   Switch,
+  toast,
 } from "@medusajs/ui"
 import { useUpdateDirectoryListing } from "../../../hooks/api/directory"
 
@@ -59,36 +60,41 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
     const hasDevotional =
       form.devotional_question || form.devotional_image_url
 
-    await update.mutateAsync({
-      id: listing.id,
-      always_open: form.always_open,
-      owner_interview: hasInterview
-        ? {
-            photo_url: form.owner_photo_url || undefined,
-            q1_prompt: form.owner_q1_prompt,
-            q1_answer: form.owner_q1_answer,
-            q2_prompt: form.owner_q2_prompt,
-            q2_answer: form.owner_q2_answer,
-            q3_prompt: form.owner_q3_prompt,
-            q3_answer: form.owner_q3_answer,
-            q4_prompt: form.owner_q4_prompt,
-            q4_answer: form.owner_q4_answer,
-          }
-        : null,
-      devotional: hasDevotional
-        ? {
-            image_url: form.devotional_image_url || undefined,
-            question: form.devotional_question || undefined,
-            answer: form.devotional_answer || undefined,
-          }
-        : null,
-      cta_type: form.cta_type,
-      cta_url:
-        form.cta_type === "visit_shop" ? null : form.cta_url || null,
-    })
+    try {
+      await update.mutateAsync({
+        id: listing.id,
+        always_open: form.always_open,
+        owner_interview: hasInterview
+          ? {
+              photo_url: form.owner_photo_url || undefined,
+              q1_prompt: form.owner_q1_prompt,
+              q1_answer: form.owner_q1_answer,
+              q2_prompt: form.owner_q2_prompt,
+              q2_answer: form.owner_q2_answer,
+              q3_prompt: form.owner_q3_prompt,
+              q3_answer: form.owner_q3_answer,
+              q4_prompt: form.owner_q4_prompt,
+              q4_answer: form.owner_q4_answer,
+            }
+          : null,
+        devotional: hasDevotional
+          ? {
+              image_url: form.devotional_image_url || undefined,
+              question: form.devotional_question || undefined,
+              answer: form.devotional_answer || undefined,
+            }
+          : null,
+        cta_type: form.cta_type,
+        cta_url:
+          form.cta_type === "visit_shop" ? null : form.cta_url || null,
+      })
 
-    setSavedBanner(true)
-    setTimeout(() => setSavedBanner(false), 2500)
+      setSavedBanner(true)
+      setTimeout(() => setSavedBanner(false), 2500)
+    } catch (e: any) {
+      // Without this the banner just never appeared — no error, no clue.
+      toast.error(e?.message || "Couldn't save the extended profile.")
+    }
   }
 
   return (

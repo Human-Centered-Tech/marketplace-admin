@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Container, Heading, Text, Button } from "@medusajs/ui"
+import { Container, Heading, Text, Button, toast } from "@medusajs/ui"
 import { useUpdateDirectoryListing } from "../../../hooks/api/directory"
 
 // 50 US states (no DC) — kept in sync with the storefront directory state
@@ -40,15 +40,21 @@ export const ServicedStatesEditor = ({ listing }: { listing: any }) => {
 
   const handleSave = async () => {
     const sorted = US_STATES.filter((s) => selected.has(s))
-    await update.mutateAsync({
-      id: listing.id,
-      address: {
-        ...(listing.address ?? {}),
-        serviced_states: sorted.length ? sorted.join(", ") : null,
-      },
-    })
-    setSavedBanner(true)
-    setTimeout(() => setSavedBanner(false), 2500)
+    try {
+      await update.mutateAsync({
+        id: listing.id,
+        address: {
+          ...(listing.address ?? {}),
+          serviced_states: sorted.length ? sorted.join(", ") : null,
+        },
+      })
+      setSavedBanner(true)
+      setTimeout(() => setSavedBanner(false), 2500)
+    } catch (e: any) {
+      // The banner is the only success signal, so a bare rejection showed
+      // nothing at all.
+      toast.error(e?.message || "Couldn't save the serviced states.")
+    }
   }
 
   return (
