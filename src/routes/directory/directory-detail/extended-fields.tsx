@@ -9,8 +9,23 @@ import {
   Textarea,
   Select,
   Switch,
+  toast,
 } from "@medusajs/ui"
+import { sdk } from "../../../lib/client"
 import { useUpdateDirectoryListing } from "../../../hooks/api/directory"
+
+// Same set the logo/cover + gallery editors accept (see logo-cover-editor.tsx).
+const SUPPORTED_FORMATS = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "image/avif",
+]
+
+const normalize = (u?: string | null) =>
+  u && u.startsWith("//") ? `https:${u}` : u || ""
 
 /**
  * Admin-side editor for the 4/1 directory fields:
@@ -48,6 +63,32 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
   })
 
   const [savedBanner, setSavedBanner] = useState(false)
+  const [uploadingOwnerPhoto, setUploadingOwnerPhoto] = useState(false)
+
+  /**
+   * Upload an owner photo file and drop the resulting URL into the existing
+   * owner_photo_url form value — the save path below is untouched. Mirrors
+   * logo-cover-editor.tsx: sdk.admin.upload.create → /admin/uploads.
+   */
+  const uploadOwnerPhoto = async (fileList: FileList | null) => {
+    const file = fileList?.[0]
+    if (!file) return
+    if (!SUPPORTED_FORMATS.includes(file.type)) {
+      toast.error(`Unsupported format: ${file.type || file.name}`)
+      return
+    }
+    setUploadingOwnerPhoto(true)
+    try {
+      const { files } = await sdk.admin.upload.create({ files: [file] })
+      const url = (files ?? [])[0]?.url
+      if (!url) throw new Error("Upload returned no URL")
+      setForm((prev) => ({ ...prev, owner_photo_url: url }))
+    } catch (e: any) {
+      toast.error(e?.message || "Upload failed")
+    } finally {
+      setUploadingOwnerPhoto(false)
+    }
+  }
 
   const handleSave = async () => {
     const hasInterview =
@@ -104,6 +145,7 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
           variant="primary"
           size="small"
           onClick={handleSave}
+          disabled={uploadingOwnerPhoto}
           isLoading={update.isPending}
         >
           Save changes
@@ -173,14 +215,66 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
         </Text>
         <div className="grid grid-cols-1 gap-3">
           <div>
-            <Label>Owner Photo URL</Label>
-            <Input
-              value={form.owner_photo_url}
-              onChange={(e) =>
-                setForm({ ...form, owner_photo_url: e.target.value })
-              }
-              placeholder="https://"
-            />
+            <Label>Owner Photo</Label>
+            <div className="flex items-start gap-3 mt-1">
+              <div className="relative w-24 h-24 shrink-0 rounded border overflow-hidden bg-ui-bg-subtle">
+                {form.owner_photo_url ? (
+                  <>
+                    <img
+                      src={normalize(form.owner_photo_url)}
+                      alt="Owner"
+                      className="w-full h-full object-contain bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({ ...prev, owner_photo_url: "" }))
+                      }
+                      aria-label="Remove owner photo"
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-sm leading-none flex items-center justify-center hover:bg-black/80"
+                    >
+                      ×
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Text className="text-ui-fg-muted text-xs">No photo</Text>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <Input
+                  value={form.owner_photo_url}
+                  onChange={(e) =>
+                    setForm({ ...form, owner_photo_url: e.target.value })
+                  }
+                  placeholder="https://"
+                  disabled={uploadingOwnerPhoto}
+                />
+                <label className="inline-block mt-2 cursor-pointer">
+                  <span className="text-ui-fg-interactive text-sm hover:underline">
+                    {uploadingOwnerPhoto
+                      ? "Uploading…"
+                      : form.owner_photo_url
+                        ? "Replace with a file"
+                        : "Upload a file"}
+                  </span>
+                  <input
+                    type="file"
+                    accept={SUPPORTED_FORMATS.join(",")}
+                    className="hidden"
+                    disabled={uploadingOwnerPhoto}
+                    onChange={(e) => {
+                      uploadOwnerPhoto(e.target.files)
+                      e.target.value = ""
+                    }}
+                  />
+                </label>
+                <Text className="text-ui-fg-muted text-xs mt-1">
+                  Paste a URL or upload a file. Remember to save changes.
+                </Text>
+              </div>
+            </div>
           </div>
           {([1, 2, 3, 4] as const).map((n) => (
             <div key={n} className="border rounded p-3 space-y-2">

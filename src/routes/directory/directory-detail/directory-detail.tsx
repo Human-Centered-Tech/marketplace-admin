@@ -71,8 +71,14 @@ export const DirectoryDetail = () => {
           "Membership linked — listing marked active and tied to the member's shop (Merchant)."
         )
       } else {
-        toast.success(
-          "Membership linked and marked active — this member is a Business Owner (directory listing, no storefront). Correct for service businesses."
+        // No seller for this email — which is EITHER a genuine service business
+        // (correct, nothing to do) OR a merchant whose shop doesn't exist yet,
+        // in which case vendor_id stays null forever and their dashboard treats
+        // them as a new signup. The backend can't tell the two apart at link
+        // time, so neither can we: say so instead of calling it correct, and
+        // point at the queue that lists the fixable ones (7/31).
+        toast.warning(
+          "Membership linked and marked active — no storefront attached. Correct for a service business. If they're signing up as a merchant, re-link once their shop exists — they'll be waiting under Memberships to Link → No shop attached."
         )
       }
       // Say the correction out loud. Silently swapping the id would leave her
@@ -344,8 +350,10 @@ export const DirectoryDetail = () => {
                         "Linked — this member is a Merchant (listing + storefront attached)."
                       )
                     } else {
-                      toast.success(
-                        "Linked — this member is a Business Owner (directory listing, no storefront). Correct for service businesses."
+                      // Ambiguous by construction — see the note on the same
+                      // branch in handleMigrateLink above.
+                      toast.warning(
+                        "Linked — no storefront attached. Correct for a service business. If they're signing up as a merchant, re-link once their shop exists — they'll be waiting under Memberships to Link → No shop attached."
                       )
                     }
                   } catch (e: any) {
