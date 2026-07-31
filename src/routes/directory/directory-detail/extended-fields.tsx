@@ -1,18 +1,20 @@
-import { useState } from "react"
+import { useState } from "react";
+
 import {
+  Button,
   Container,
   Heading,
-  Text,
-  Button,
   Input,
   Label,
-  Textarea,
   Select,
   Switch,
+  Text,
+  Textarea,
   toast,
-} from "@medusajs/ui"
-import { sdk } from "../../../lib/client"
-import { useUpdateDirectoryListing } from "../../../hooks/api/directory"
+} from "@medusajs/ui";
+
+import { useUpdateDirectoryListing } from "../../../hooks/api/directory";
+import { sdk } from "../../../lib/client";
 
 // Same set the logo/cover + gallery editors accept (see logo-cover-editor.tsx).
 const SUPPORTED_FORMATS = [
@@ -22,10 +24,10 @@ const SUPPORTED_FORMATS = [
   "image/webp",
   "image/svg+xml",
   "image/avif",
-]
+];
 
 const normalize = (u?: string | null) =>
-  u && u.startsWith("//") ? `https:${u}` : u || ""
+  u && u.startsWith("//") ? `https:${u}` : u || "";
 
 /**
  * Admin-side editor for the 4/1 directory fields:
@@ -39,31 +41,35 @@ const normalize = (u?: string | null) =>
  * founding-pillars partnerships).
  */
 export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
-  const update = useUpdateDirectoryListing()
+  const update = useUpdateDirectoryListing();
 
-  const interview = listing.owner_interview || {}
-  const devotional = listing.devotional || {}
+  const interview = listing.owner_interview || {};
+  const devotional = listing.devotional || {};
 
   const [form, setForm] = useState({
     always_open: Boolean(listing.always_open),
     owner_photo_url: interview.photo_url || "",
-    owner_q1_prompt: interview.q1_prompt || "What inspired you to start this business?",
+    owner_q1_prompt:
+      interview.q1_prompt || "What inspired you to start this business?",
     owner_q1_answer: interview.q1_answer || "",
-    owner_q2_prompt: interview.q2_prompt || "How does your faith shape your work?",
+    owner_q2_prompt:
+      interview.q2_prompt || "How does your faith shape your work?",
     owner_q2_answer: interview.q2_answer || "",
-    owner_q3_prompt: interview.q3_prompt || "What's a favorite patron saint or scripture?",
+    owner_q3_prompt:
+      interview.q3_prompt || "What's a favorite patron saint or scripture?",
     owner_q3_answer: interview.q3_answer || "",
-    owner_q4_prompt: interview.q4_prompt || "What's one thing you'd like customers to know?",
+    owner_q4_prompt:
+      interview.q4_prompt || "What's one thing you'd like customers to know?",
     owner_q4_answer: interview.q4_answer || "",
     devotional_image_url: devotional.image_url || "",
     devotional_question: devotional.question || "",
     devotional_answer: devotional.answer || "",
     cta_type: listing.cta_type || "visit_shop",
     cta_url: listing.cta_url || "",
-  })
+  });
 
-  const [savedBanner, setSavedBanner] = useState(false)
-  const [uploadingOwnerPhoto, setUploadingOwnerPhoto] = useState(false)
+  const [savedBanner, setSavedBanner] = useState(false);
+  const [uploadingOwnerPhoto, setUploadingOwnerPhoto] = useState(false);
 
   /**
    * Upload an owner photo file and drop the resulting URL into the existing
@@ -71,73 +77,85 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
    * logo-cover-editor.tsx: sdk.admin.upload.create → /admin/uploads.
    */
   const uploadOwnerPhoto = async (fileList: FileList | null) => {
-    const file = fileList?.[0]
-    if (!file) return
+    const file = fileList?.[0];
+    if (!file) return;
     if (!SUPPORTED_FORMATS.includes(file.type)) {
-      toast.error(`Unsupported format: ${file.type || file.name}`)
-      return
+      toast.error(`Unsupported format: ${file.type || file.name}`);
+      return;
     }
-    setUploadingOwnerPhoto(true)
+    setUploadingOwnerPhoto(true);
     try {
-      const { files } = await sdk.admin.upload.create({ files: [file] })
-      const url = (files ?? [])[0]?.url
-      if (!url) throw new Error("Upload returned no URL")
-      setForm((prev) => ({ ...prev, owner_photo_url: url }))
+      const { files } = await sdk.admin.upload.create({ files: [file] });
+      const url = (files ?? [])[0]?.url;
+      if (!url) throw new Error("Upload returned no URL");
+      setForm((prev) => ({ ...prev, owner_photo_url: url }));
     } catch (e: any) {
-      toast.error(e?.message || "Upload failed")
+      toast.error(e?.message || "Upload failed");
     } finally {
-      setUploadingOwnerPhoto(false)
+      setUploadingOwnerPhoto(false);
     }
-  }
+  };
 
   const handleSave = async () => {
-    const hasInterview =
-      form.owner_q1_answer ||
-      form.owner_q2_answer ||
-      form.owner_q3_answer ||
-      form.owner_q4_answer ||
-      form.owner_photo_url
-    const hasDevotional =
-      form.devotional_question || form.devotional_image_url
+    try {
+      const hasInterview =
+        form.owner_q1_answer ||
+        form.owner_q2_answer ||
+        form.owner_q3_answer ||
+        form.owner_q4_answer ||
+        form.owner_photo_url;
+      const hasDevotional =
+        form.devotional_question || form.devotional_image_url;
 
-    await update.mutateAsync({
-      id: listing.id,
-      always_open: form.always_open,
-      owner_interview: hasInterview
-        ? {
-            photo_url: form.owner_photo_url || undefined,
-            q1_prompt: form.owner_q1_prompt,
-            q1_answer: form.owner_q1_answer,
-            q2_prompt: form.owner_q2_prompt,
-            q2_answer: form.owner_q2_answer,
-            q3_prompt: form.owner_q3_prompt,
-            q3_answer: form.owner_q3_answer,
-            q4_prompt: form.owner_q4_prompt,
-            q4_answer: form.owner_q4_answer,
-          }
-        : null,
-      devotional: hasDevotional
-        ? {
-            image_url: form.devotional_image_url || undefined,
-            question: form.devotional_question || undefined,
-            answer: form.devotional_answer || undefined,
-          }
-        : null,
-      cta_type: form.cta_type,
-      cta_url:
-        form.cta_type === "visit_shop" ? null : form.cta_url || null,
-    })
+      await update.mutateAsync({
+        id: listing.id,
+        always_open: form.always_open,
+        owner_interview: hasInterview
+          ? {
+              photo_url: form.owner_photo_url || undefined,
+              q1_prompt: form.owner_q1_prompt,
+              q1_answer: form.owner_q1_answer,
+              q2_prompt: form.owner_q2_prompt,
+              q2_answer: form.owner_q2_answer,
+              q3_prompt: form.owner_q3_prompt,
+              q3_answer: form.owner_q3_answer,
+              q4_prompt: form.owner_q4_prompt,
+              q4_answer: form.owner_q4_answer,
+            }
+          : null,
+        devotional: hasDevotional
+          ? {
+              image_url: form.devotional_image_url || undefined,
+              question: form.devotional_question || undefined,
+              answer: form.devotional_answer || undefined,
+            }
+          : null,
+        cta_type: form.cta_type,
+        cta_url: form.cta_type === "visit_shop" ? null : form.cta_url || null,
+      });
 
-    setSavedBanner(true)
-    setTimeout(() => setSavedBanner(false), 2500)
-  }
+      setSavedBanner(true);
+      setTimeout(() => setSavedBanner(false), 2500);
+    } catch (e: any) {
+      // Same swallow this codebase keeps rediscovering: an awaited mutation
+      // with no catch means a failed PUT just stops the spinner, shows no
+      // banner and says nothing — indistinguishable from "I clicked and
+      // nothing happened". Fixed for category save (33e19be) and category
+      // delete (1793e68); the owner-interview save never got the same
+      // treatment, and it's the one carrying the answers Brooke collects by
+      // hand. Surface the backend's own message.
+      toast.error(
+        e?.message || "Couldn't save the extended profile. Please try again.",
+      );
+    }
+  };
 
   return (
     <Container>
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <div>
           <Heading level="h2">Extended Profile</Heading>
-          <Text className="text-ui-fg-subtle text-sm">
+          <Text className="text-sm text-ui-fg-subtle">
             Owner interview, devotional, CTA, and hours flag
           </Text>
         </div>
@@ -153,13 +171,13 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
       </div>
 
       {savedBanner && (
-        <div className="mb-4 p-2 text-sm bg-green-50 text-green-700 border border-green-200 rounded">
+        <div className="mb-4 rounded border border-green-200 bg-green-50 p-2 text-sm text-green-700">
           Saved.
         </div>
       )}
 
       {/* Always open */}
-      <div className="mb-6 flex items-center gap-3 p-3 border rounded">
+      <div className="mb-6 flex items-center gap-3 rounded border p-3">
         <Switch
           id="always-open"
           checked={form.always_open}
@@ -216,14 +234,14 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
         <div className="grid grid-cols-1 gap-3">
           <div>
             <Label>Owner Photo</Label>
-            <div className="flex items-start gap-3 mt-1">
-              <div className="relative w-24 h-24 shrink-0 rounded border overflow-hidden bg-ui-bg-subtle">
+            <div className="mt-1 flex items-start gap-3">
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded border bg-ui-bg-subtle">
                 {form.owner_photo_url ? (
                   <>
                     <img
                       src={normalize(form.owner_photo_url)}
                       alt="Owner"
-                      className="w-full h-full object-contain bg-white"
+                      className="h-full w-full bg-white object-contain"
                     />
                     <button
                       type="button"
@@ -231,14 +249,14 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
                         setForm((prev) => ({ ...prev, owner_photo_url: "" }))
                       }
                       aria-label="Remove owner photo"
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-sm leading-none flex items-center justify-center hover:bg-black/80"
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-sm leading-none text-white hover:bg-black/80"
                     >
                       ×
                     </button>
                   </>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Text className="text-ui-fg-muted text-xs">No photo</Text>
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Text className="text-xs text-ui-fg-muted">No photo</Text>
                   </div>
                 )}
               </div>
@@ -251,8 +269,8 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
                   placeholder="https://"
                   disabled={uploadingOwnerPhoto}
                 />
-                <label className="inline-block mt-2 cursor-pointer">
-                  <span className="text-ui-fg-interactive text-sm hover:underline">
+                <label className="mt-2 inline-block cursor-pointer">
+                  <span className="text-sm text-ui-fg-interactive hover:underline">
                     {uploadingOwnerPhoto
                       ? "Uploading…"
                       : form.owner_photo_url
@@ -265,19 +283,19 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
                     className="hidden"
                     disabled={uploadingOwnerPhoto}
                     onChange={(e) => {
-                      uploadOwnerPhoto(e.target.files)
-                      e.target.value = ""
+                      uploadOwnerPhoto(e.target.files);
+                      e.target.value = "";
                     }}
                   />
                 </label>
-                <Text className="text-ui-fg-muted text-xs mt-1">
+                <Text className="mt-1 text-xs text-ui-fg-muted">
                   Paste a URL or upload a file. Remember to save changes.
                 </Text>
               </div>
             </div>
           </div>
           {([1, 2, 3, 4] as const).map((n) => (
-            <div key={n} className="border rounded p-3 space-y-2">
+            <div key={n} className="space-y-2 rounded border p-3">
               <div>
                 <Label>Question {n}</Label>
                 <Input
@@ -346,5 +364,5 @@ export const ExtendedFieldsEditor = ({ listing }: { listing: any }) => {
         </div>
       </div>
     </Container>
-  )
-}
+  );
+};
