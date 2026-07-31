@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Container,
   Heading,
@@ -34,6 +34,25 @@ export const PlatformCredits = () => {
     codes: { id: string; code: string }[]
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Redemptions: which codes were actually used, and what each seller absorbed.
+  // These codes are discounts, so the merchant currently eats them; this is the
+  // list Brooke reimburses from until credit is modelled as tender.
+  const [redemptions, setRedemptions] = useState<{
+    by_seller: { seller_id: string; seller_name: string | null; orders: number; total: number }[]
+    total_discount: number
+    redemptions: { code: string | null; order_display_id: number | null; seller_name: string | null; discount: number }[]
+  } | null>(null)
+  const [redemptionsError, setRedemptionsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    sdk.client
+      .fetch<any>("/admin/platform-credits/redemptions", { method: "GET" })
+      .then(setRedemptions)
+      .catch((e: any) =>
+        setRedemptionsError(e?.message || "Couldn't load redemptions")
+      )
+  }, [result])
 
   const handleGenerate = async () => {
     setError(null)
@@ -234,6 +253,64 @@ export const PlatformCredits = () => {
           </Text>
         </div>
       )}
+      <div className="p-6 border-t">
+        <Heading level="h2" className="mb-1">
+          Redeemed Codes
+        </Heading>
+        <Text className="text-ui-fg-subtle text-sm mb-4">
+          Codes are discounts, so the seller's payout is reduced by the amount
+          redeemed. If Catholic Owned is funding the giveaway, these are the
+          merchants owed a reimbursement.
+        </Text>
+
+        {redemptionsError && (
+          <Text className="text-ui-fg-error text-sm">{redemptionsError}</Text>
+        )}
+
+        {redemptions && redemptions.redemptions.length === 0 && (
+          <Text className="text-ui-fg-subtle text-sm">
+            No codes redeemed yet.
+          </Text>
+        )}
+
+        {redemptions && redemptions.redemptions.length > 0 && (
+          <>
+            <Text className="text-sm mb-3">
+              <strong>${redemptions.total_discount.toFixed(2)}</strong> absorbed
+              by sellers across {redemptions.redemptions.length} redemption
+              {redemptions.redemptions.length === 1 ? "" : "s"}.
+            </Text>
+            <div className="border rounded bg-ui-bg-base divide-y mb-4">
+              {redemptions.by_seller.map((s) => (
+                <div
+                  key={s.seller_id}
+                  className="px-4 py-2 text-sm flex items-center justify-between"
+                >
+                  <span>{s.seller_name || s.seller_id}</span>
+                  <span className="font-mono">
+                    ${s.total.toFixed(2)} ({s.orders} order
+                    {s.orders === 1 ? "" : "s"})
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="border rounded bg-ui-bg-base divide-y max-h-72 overflow-y-auto">
+              {redemptions.redemptions.map((r, i) => (
+                <div
+                  key={`${r.code}-${i}`}
+                  className="px-4 py-2 font-mono text-xs flex items-center justify-between"
+                >
+                  <span>{r.code}</span>
+                  <span>
+                    {r.order_display_id ? `#${r.order_display_id}` : "—"} ·{" "}
+                    {r.seller_name || "?"} · ${r.discount.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </Container>
   )
 }
