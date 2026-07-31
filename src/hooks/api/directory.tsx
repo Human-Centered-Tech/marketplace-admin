@@ -171,6 +171,13 @@ export const useLinkDirectoryListing = () => {
         seller_linked: boolean
         stripe_subscription_id: string | null
         stripe_customer_id: string | null
+        // Set when the pasted id was a line item / customer and the backend
+        // looked up the real subscription. Surfaced in the toast so the
+        // correction is visible rather than silent.
+        normalized_from: string | null
+        subscription_status_in_stripe: string | null
+        customer_id_corrected: boolean
+        warning: string | null
       }>(`/admin/directory/listings/${id}/link`, {
         method: "POST",
         body,
@@ -383,12 +390,22 @@ export const useClaimIntents = (
   const { data, ...other } = useQuery({
     queryKey: claimIntentQueryKeys.list(query),
     queryFn: () =>
-      sdk.client.fetch<{ intents: any[]; count: number }>(
-        "/admin/directory/claim-intents",
-        { method: "GET", query }
-      ),
+      sdk.client.fetch<{
+        intents: any[]
+        count: number
+        // Anonymous funnel visits (no email, no account) are hidden by default
+        // — see the admin route. Surfaced so they're never silently dropped.
+        anonymous_count: number
+        anonymous_hidden: boolean
+      }>("/admin/directory/claim-intents", { method: "GET", query }),
   })
-  return { intents: data?.intents, count: data?.count, ...other }
+  return {
+    intents: data?.intents,
+    count: data?.count,
+    anonymousCount: data?.anonymous_count ?? 0,
+    anonymousHidden: data?.anonymous_hidden ?? true,
+    ...other,
+  }
 }
 
 export const useVoidClaimIntent = () => {

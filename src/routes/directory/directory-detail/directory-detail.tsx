@@ -75,10 +75,52 @@ export const DirectoryDetail = () => {
           "Membership linked and marked active — this member is a Business Owner (directory listing, no storefront). Correct for service businesses."
         )
       }
+      // Say the correction out loud. Silently swapping the id would leave her
+      // believing what she pasted was the subscription id all along.
+      if (res.normalized_from) {
+        toast.info(
+          `${res.normalized_from} is a ${
+            res.normalized_from.startsWith("si_") ? "line item" : "customer"
+          } — recorded its subscription ${res.stripe_subscription_id} instead.`
+        )
+      }
+      if (res.customer_id_corrected) {
+        toast.warning(
+          `The customer ID you entered isn't the one on that subscription. Saved Stripe's (${res.stripe_customer_id}) — worth double-checking you had the right member.`
+        )
+      }
+      if (res.warning) {
+        toast.warning(res.warning)
+      }
     } catch (e: any) {
       toast.error(e?.message || "Could not link — check the email.")
     }
   }
+
+  // The backend resolves si_ (subscription item) and cus_ (customer) to the
+  // real sub_ via Stripe, so those are NOT errors — just say what will happen.
+  // Only a shape Stripe can't interpret at all is worth blocking on.
+  const migrateSubIdNote = (() => {
+    const v = migrateSubId.trim()
+    if (!v || v.startsWith("sub_")) return null
+    if (v.startsWith("si_"))
+      return "That's a line-item ID — we'll look up the subscription it belongs to."
+    if (v.startsWith("cus_"))
+      return "That's a customer ID — we'll find their active subscription."
+    return null
+  })()
+  const migrateSubIdError = (() => {
+    const v = migrateSubId.trim()
+    if (!v) return null
+    if (v.startsWith("sub_") || v.startsWith("si_") || v.startsWith("cus_"))
+      return null
+    return "Not a Stripe ID we recognize — paste the subscription ID from its page in Stripe."
+  })()
+  const migrateCustIdError = (() => {
+    const v = migrateCustId.trim()
+    if (!v || v.startsWith("cus_")) return null
+    return "A Stripe customer ID starts with cus_ — it's on the customer's page, not the subscription's."
+  })()
 
   const listing = (data as any)?.listing
 
@@ -385,7 +427,25 @@ export const DirectoryDetail = () => {
                     placeholder="sub_..."
                     value={migrateSubId}
                     onChange={(e) => setMigrateSubId(e.target.value)}
+                    aria-invalid={!!migrateSubIdError}
                   />
+                  <Text className="text-ui-fg-muted text-xs">
+                    Paste any ID from the member's subscription in Stripe — the
+                    subscription itself (<strong>sub_…</strong>), a line item
+                    inside it (<strong>si_…</strong>), or the customer
+                    (<strong>cus_…</strong>). We'll look up the right one and
+                    record that.
+                  </Text>
+                  {migrateSubIdNote && !migrateSubIdError && (
+                    <Text className="text-ui-fg-interactive text-xs">
+                      {migrateSubIdNote}
+                    </Text>
+                  )}
+                  {migrateSubIdError && (
+                    <Text className="text-ui-fg-error text-xs">
+                      {migrateSubIdError}
+                    </Text>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1">
                   <Label htmlFor="migrate-cust" size="small">
@@ -397,7 +457,17 @@ export const DirectoryDetail = () => {
                     placeholder="cus_..."
                     value={migrateCustId}
                     onChange={(e) => setMigrateCustId(e.target.value)}
+                    aria-invalid={!!migrateCustIdError}
                   />
+                  <Text className="text-ui-fg-muted text-xs">
+                    Usually leave this blank — it's read off the subscription
+                    automatically. Only needed if no subscription ID is given.
+                  </Text>
+                  {migrateCustIdError && (
+                    <Text className="text-ui-fg-error text-xs">
+                      {migrateCustIdError}
+                    </Text>
+                  )}
                 </div>
               </div>
             </FocusModal.Body>
@@ -410,7 +480,11 @@ export const DirectoryDetail = () => {
               </Button>
               <Button
                 variant="primary"
-                disabled={!migrateEmail.trim()}
+                disabled={
+                  !migrateEmail.trim() ||
+                  !!migrateSubIdError ||
+                  !!migrateCustIdError
+                }
                 isLoading={linkMutation.isPending}
                 onClick={handleMigrateLink}
               >

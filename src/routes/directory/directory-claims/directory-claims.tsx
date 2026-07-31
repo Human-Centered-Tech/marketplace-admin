@@ -26,6 +26,10 @@ export const DirectoryClaims = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const statusFilter = searchParams.get("status") || ""
   const qParam = searchParams.get("q") || ""
+  // Anonymous funnel visits (opened the claim funnel, never gave an email or
+  // signed in) are hidden by default — they're not followable, and a crawler
+  // walking the directory can mint thousands of them.
+  const showAnonymous = searchParams.get("include_anonymous") === "true"
   const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0)
   const voidMutation = useVoidClaimIntent()
   const prompt = usePrompt()
@@ -40,6 +44,7 @@ export const DirectoryClaims = () => {
       const params: Record<string, string> = {}
       if (statusFilter) params.status = statusFilter
       if (searchInput.trim()) params.q = searchInput.trim()
+      if (showAnonymous) params.include_anonymous = "true"
       setSearchParams(params)
     }, 300)
     return () => clearTimeout(t)
@@ -49,7 +54,8 @@ export const DirectoryClaims = () => {
   const query: Record<string, string | number> = { offset, limit: PAGE_SIZE }
   if (statusFilter) query.status = statusFilter
   if (qParam) query.q = qParam
-  const { intents, count, isLoading } = useClaimIntents(query)
+  if (showAnonymous) query.include_anonymous = "true"
+  const { intents, count, anonymousCount, isLoading } = useClaimIntents(query)
 
   const total = count ?? 0
   const canPrev = offset > 0
@@ -58,6 +64,7 @@ export const DirectoryClaims = () => {
     const params: Record<string, string> = {}
     if (statusFilter) params.status = statusFilter
     if (qParam) params.q = qParam
+    if (showAnonymous) params.include_anonymous = "true"
     if (nextOffset > 0) params.offset = String(nextOffset)
     setSearchParams(params)
   }
@@ -65,6 +72,14 @@ export const DirectoryClaims = () => {
     const params: Record<string, string> = {}
     if (next) params.status = next
     if (qParam) params.q = qParam
+    if (showAnonymous) params.include_anonymous = "true"
+    setSearchParams(params)
+  }
+  const toggleAnonymous = () => {
+    const params: Record<string, string> = {}
+    if (statusFilter) params.status = statusFilter
+    if (qParam) params.q = qParam
+    if (!showAnonymous) params.include_anonymous = "true"
     setSearchParams(params)
   }
 
@@ -103,17 +118,33 @@ export const DirectoryClaims = () => {
             className="w-72"
           />
         </div>
-        <div className="flex gap-2">
-          {["", "started", "attested", "completed", "voided"].map((s) => (
-            <Button
-              key={s || "all"}
-              variant={statusFilter === s ? "primary" : "secondary"}
-              size="small"
-              onClick={() => setStatus(s)}
-            >
-              {s ? s.charAt(0).toUpperCase() + s.slice(1) : "All"}
-            </Button>
-          ))}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex gap-2">
+            {["", "started", "attested", "completed", "voided"].map((s) => (
+              <Button
+                key={s || "all"}
+                variant={statusFilter === s ? "primary" : "secondary"}
+                size="small"
+                onClick={() => setStatus(s)}
+              >
+                {s ? s.charAt(0).toUpperCase() + s.slice(1) : "All"}
+              </Button>
+            ))}
+          </div>
+          {anonymousCount > 0 && (
+            <Text className="text-ui-fg-subtle text-xs">
+              {showAnonymous
+                ? `Including ${anonymousCount} anonymous funnel visits`
+                : `${anonymousCount} anonymous funnel visits hidden`}{" "}
+              <button
+                className="underline"
+                onClick={toggleAnonymous}
+                type="button"
+              >
+                {showAnonymous ? "Hide" : "Show"}
+              </button>
+            </Text>
+          )}
         </div>
       </div>
 
