@@ -12,18 +12,19 @@ import { useCampaigns } from "../../hooks/api/campaigns"
 import { sdk } from "../../lib/client"
 
 /**
- * Bulk-generate single-use platform credit codes for an existing
- * campaign. Per PRD §7: each code is a fixed dollar value Medusa
- * promotion with usage_limit=1, attached to a campaign whose budget
- * caps total outstanding credit.
- *
- * Campaigns must be created first via the Campaigns admin page;
- * this screen only handles bulk code generation.
+ * Bulk-generate single-use platform credit codes. Per PRD §7: each code is a
+ * fixed dollar value Medusa promotion with usage_limit=1. A campaign is
+ * OPTIONAL — attach one when you want its budget to cap total outstanding
+ * credit; otherwise codes land in a standing default pool.
  */
+// Select can't hold an empty string as a value, so use a sentinel and strip
+// it before the request. Absent campaign_id => backend default pool.
+const DEFAULT_CAMPAIGN_OPTION = "__default__"
+
 export const PlatformCredits = () => {
   const { campaigns, isLoading: loadingCampaigns } = useCampaigns()
 
-  const [campaignId, setCampaignId] = useState<string>("")
+  const [campaignId, setCampaignId] = useState<string>(DEFAULT_CAMPAIGN_OPTION)
   const [count, setCount] = useState<number>(25)
   const [valueDollars, setValueDollars] = useState<string>("25.00")
   const [prefix, setPrefix] = useState<string>("CO-CREDIT")
@@ -58,7 +59,8 @@ export const PlatformCredits = () => {
       }>("/admin/platform-credits/generate", {
         method: "POST",
         body: {
-          campaign_id: campaignId,
+          campaign_id:
+            campaignId === DEFAULT_CAMPAIGN_OPTION ? undefined : campaignId,
           count,
           value,
           prefix,
@@ -83,10 +85,11 @@ export const PlatformCredits = () => {
       <div className="p-6 border-b">
         <Heading level="h1">Platform Credits</Heading>
         <Text className="text-ui-fg-subtle mt-2">
-          Bulk-generate single-use promotional codes tied to a campaign.
-          Each code acts as a platform credit; the campaign budget caps
-          total outstanding credit. Manage campaigns (and their budgets)
-          on the{" "}
+          Bulk-generate single-use promotional codes. Each code is a discount
+          applied at checkout, so it is currently funded by the MERCHANT, not
+          by the platform — a Catholic Owned–funded gift card needs credit
+          modelled as tender instead. Attach a campaign to cap total
+          outstanding credit; manage campaigns on the{" "}
           <a href="/campaigns" className="underline text-ui-fg-interactive">
             Campaigns
           </a>{" "}
@@ -101,16 +104,23 @@ export const PlatformCredits = () => {
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="col-span-2">
-            <Label htmlFor="pc-campaign">Campaign</Label>
+            <Label htmlFor="pc-campaign">Campaign (optional)</Label>
             <Select
               value={campaignId}
               onValueChange={setCampaignId}
               disabled={loadingCampaigns}
             >
               <Select.Trigger id="pc-campaign">
-                <Select.Value placeholder="Select a campaign..." />
+                <Select.Value placeholder="Default pool — no budget cap" />
               </Select.Trigger>
               <Select.Content>
+                {/* Empty value = omit campaign_id; the backend drops the codes
+                    into the standing PLATFORM-CREDITS pool, creating it on
+                    first use. Having to invent a campaign before you can issue
+                    a single code was the confusing part. */}
+                <Select.Item value={DEFAULT_CAMPAIGN_OPTION}>
+                  Default pool — no budget cap
+                </Select.Item>
                 {(campaigns || []).map((c: any) => (
                   <Select.Item key={c.id} value={c.id}>
                     {c.name} ({c.campaign_identifier})
@@ -118,6 +128,10 @@ export const PlatformCredits = () => {
                 ))}
               </Select.Content>
             </Select>
+            <Text className="text-ui-fg-subtle text-xs mt-1">
+              Pick a campaign only when you want its budget to cap total
+              outstanding credit. Otherwise leave the default.
+            </Text>
           </div>
 
           <div>
@@ -172,7 +186,7 @@ export const PlatformCredits = () => {
             {count === 1 ? "" : "s"} worth{" "}
             <strong>${parseFloat(valueDollars).toFixed(2)}</strong> each —{" "}
             <strong>${(count * parseFloat(valueDollars)).toFixed(2)}</strong>{" "}
-            total against the campaign budget. This can't be undone.
+            total. This can't be undone.
           </Text>
         )}
 
@@ -185,7 +199,7 @@ export const PlatformCredits = () => {
           size="small"
           onClick={handleGenerate}
           isLoading={generating}
-          disabled={!campaignId || count < 1 || !valueDollars}
+          disabled={count < 1 || !valueDollars}
         >
           Generate {count} Code{count === 1 ? "" : "s"}
         </Button>
