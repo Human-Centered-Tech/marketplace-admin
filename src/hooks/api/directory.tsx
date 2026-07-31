@@ -171,6 +171,13 @@ export const useLinkDirectoryListing = () => {
         seller_linked: boolean
         stripe_subscription_id: string | null
         stripe_customer_id: string | null
+        // Set when the pasted id was a line item / customer and the backend
+        // looked up the real subscription. Surfaced in the toast so the
+        // correction is visible rather than silent.
+        normalized_from: string | null
+        subscription_status_in_stripe: string | null
+        customer_id_corrected: boolean
+        warning: string | null
       }>(`/admin/directory/listings/${id}/link`, {
         method: "POST",
         body,
