@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Container,
   Heading,
@@ -12,18 +12,19 @@ import { useCampaigns } from "../../hooks/api/campaigns"
 import { sdk } from "../../lib/client"
 
 /**
- * Bulk-generate single-use platform credit codes for an existing
- * campaign. Per PRD §7: each code is a fixed dollar value Medusa
- * promotion with usage_limit=1, attached to a campaign whose budget
- * caps total outstanding credit.
- *
- * Campaigns must be created first via the Campaigns admin page;
- * this screen only handles bulk code generation.
+ * Bulk-generate single-use platform credit codes. Per PRD §7: each code is a
+ * fixed dollar value Medusa promotion with usage_limit=1. A campaign is
+ * OPTIONAL — attach one when you want its budget to cap total outstanding
+ * credit; otherwise codes land in a standing default pool.
  */
+// Select can't hold an empty string as a value, so use a sentinel and strip
+// it before the request. Absent campaign_id => backend default pool.
+const DEFAULT_CAMPAIGN_OPTION = "__default__"
+
 export const PlatformCredits = () => {
   const { campaigns, isLoading: loadingCampaigns } = useCampaigns()
 
-  const [campaignId, setCampaignId] = useState<string>("")
+  const [campaignId, setCampaignId] = useState<string>(DEFAULT_CAMPAIGN_OPTION)
   const [count, setCount] = useState<number>(25)
   const [valueDollars, setValueDollars] = useState<string>("25.00")
   const [prefix, setPrefix] = useState<string>("CO-CREDIT")
@@ -34,12 +35,37 @@ export const PlatformCredits = () => {
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Redemptions: which codes were actually used, and what each seller absorbed.
+  // These codes are discounts, so the merchant currently eats them; this is the
+  // list Brooke reimburses from until credit is modelled as tender.
+  const [redemptions, setRedemptions] = useState<{
+    by_seller: { seller_id: string; seller_name: string | null; orders: number; total: number }[]
+    total_discount: number
+    redemptions: { code: string | null; order_display_id: number | null; seller_name: string | null; discount: number }[]
+  } | null>(null)
+  const [redemptionsError, setRedemptionsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    sdk.client
+      .fetch<any>("/admin/platform-credits/redemptions", { method: "GET" })
+      .then(setRedemptions)
+      .catch((e: any) =>
+        setRedemptionsError(e?.message || "Couldn't load redemptions")
+      )
+  }, [result])
+
   const handleGenerate = async () => {
     setError(null)
     setResult(null)
 
-    const cents = Math.round(parseFloat(valueDollars) * 100)
-    if (isNaN(cents) || cents < 1) {
+    // DOLLARS, NOT CENTS. This used to send `Math.round(value * 100)` as
+    // `value_cents`, which the backend passed straight into the promotion's
+    // application_method.value. Medusa 2.x money is decimal dollars (the
+    // upstream promotion-create form in this same admin submits a bare
+    // parseFloat), so a "$10" code was minted as a $1,000 one — enough to zero
+    // out a $1,000 order, discovered one single-use redemption at a time.
+    const value = parseFloat(valueDollars)
+    if (isNaN(value) || value <= 0) {
       setError("Value must be a positive dollar amount")
       return
     }
@@ -52,9 +78,10 @@ export const PlatformCredits = () => {
       }>("/admin/platform-credits/generate", {
         method: "POST",
         body: {
-          campaign_id: campaignId,
+          campaign_id:
+            campaignId === DEFAULT_CAMPAIGN_OPTION ? undefined : campaignId,
           count,
-          value_cents: cents,
+          value,
           prefix,
         },
       })
@@ -77,10 +104,11 @@ export const PlatformCredits = () => {
       <div className="p-6 border-b">
         <Heading level="h1">Platform Credits</Heading>
         <Text className="text-ui-fg-subtle mt-2">
-          Bulk-generate single-use promotional codes tied to a campaign.
-          Each code acts as a platform credit; the campaign budget caps
-          total outstanding credit. Manage campaigns (and their budgets)
-          on the{" "}
+          Bulk-generate single-use promotional codes. Each code is a discount
+          applied at checkout, so it is currently funded by the MERCHANT, not
+          by the platform — a Catholic Owned–funded gift card needs credit
+          modelled as tender instead. Attach a campaign to cap total
+          outstanding credit; manage campaigns on the{" "}
           <a href="/campaigns" className="underline text-ui-fg-interactive">
             Campaigns
           </a>{" "}
@@ -95,16 +123,23 @@ export const PlatformCredits = () => {
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="col-span-2">
-            <Label htmlFor="pc-campaign">Campaign</Label>
+            <Label htmlFor="pc-campaign">Campaign (optional)</Label>
             <Select
               value={campaignId}
               onValueChange={setCampaignId}
               disabled={loadingCampaigns}
             >
               <Select.Trigger id="pc-campaign">
-                <Select.Value placeholder="Select a campaign..." />
+                <Select.Value placeholder="Default pool — no budget cap" />
               </Select.Trigger>
               <Select.Content>
+                {/* Empty value = omit campaign_id; the backend drops the codes
+                    into the standing PLATFORM-CREDITS pool, creating it on
+                    first use. Having to invent a campaign before you can issue
+                    a single code was the confusing part. */}
+                <Select.Item value={DEFAULT_CAMPAIGN_OPTION}>
+                  Default pool — no budget cap
+                </Select.Item>
                 {(campaigns || []).map((c: any) => (
                   <Select.Item key={c.id} value={c.id}>
                     {c.name} ({c.campaign_identifier})
@@ -112,6 +147,10 @@ export const PlatformCredits = () => {
                 ))}
               </Select.Content>
             </Select>
+            <Text className="text-ui-fg-subtle text-xs mt-1">
+              Pick a campaign only when you want its budget to cap total
+              outstanding credit. Otherwise leave the default.
+            </Text>
           </div>
 
           <div>
@@ -137,6 +176,9 @@ export const PlatformCredits = () => {
               value={valueDollars}
               onChange={(e) => setValueDollars(e.target.value)}
             />
+            <Text className="text-ui-fg-subtle text-xs mt-1">
+              Dollars, e.g. 10 for a $10 credit.
+            </Text>
           </div>
 
           <div className="col-span-2">
@@ -154,6 +196,19 @@ export const PlatformCredits = () => {
           </div>
         </div>
 
+        {/* State the resulting numbers before the click. This action mints up
+            to 500 live redeemable codes and cannot be undone, and the unit bug
+            it replaced (dollars sent as cents) would have been obvious here. */}
+        {count > 0 && parseFloat(valueDollars) > 0 && (
+          <Text className="text-ui-fg-subtle text-sm mb-3">
+            Will create <strong>{count}</strong> single-use code
+            {count === 1 ? "" : "s"} worth{" "}
+            <strong>${parseFloat(valueDollars).toFixed(2)}</strong> each —{" "}
+            <strong>${(count * parseFloat(valueDollars)).toFixed(2)}</strong>{" "}
+            total. This can't be undone.
+          </Text>
+        )}
+
         {error && (
           <Text className="text-ui-fg-error text-sm mb-3">{error}</Text>
         )}
@@ -163,7 +218,7 @@ export const PlatformCredits = () => {
           size="small"
           onClick={handleGenerate}
           isLoading={generating}
-          disabled={!campaignId || count < 1 || !valueDollars}
+          disabled={count < 1 || !valueDollars}
         >
           Generate {count} Code{count === 1 ? "" : "s"}
         </Button>
@@ -198,6 +253,64 @@ export const PlatformCredits = () => {
           </Text>
         </div>
       )}
+      <div className="p-6 border-t">
+        <Heading level="h2" className="mb-1">
+          Redeemed Codes
+        </Heading>
+        <Text className="text-ui-fg-subtle text-sm mb-4">
+          Codes are discounts, so the seller's payout is reduced by the amount
+          redeemed. If Catholic Owned is funding the giveaway, these are the
+          merchants owed a reimbursement.
+        </Text>
+
+        {redemptionsError && (
+          <Text className="text-ui-fg-error text-sm">{redemptionsError}</Text>
+        )}
+
+        {redemptions && redemptions.redemptions.length === 0 && (
+          <Text className="text-ui-fg-subtle text-sm">
+            No codes redeemed yet.
+          </Text>
+        )}
+
+        {redemptions && redemptions.redemptions.length > 0 && (
+          <>
+            <Text className="text-sm mb-3">
+              <strong>${redemptions.total_discount.toFixed(2)}</strong> absorbed
+              by sellers across {redemptions.redemptions.length} redemption
+              {redemptions.redemptions.length === 1 ? "" : "s"}.
+            </Text>
+            <div className="border rounded bg-ui-bg-base divide-y mb-4">
+              {redemptions.by_seller.map((s) => (
+                <div
+                  key={s.seller_id}
+                  className="px-4 py-2 text-sm flex items-center justify-between"
+                >
+                  <span>{s.seller_name || s.seller_id}</span>
+                  <span className="font-mono">
+                    ${s.total.toFixed(2)} ({s.orders} order
+                    {s.orders === 1 ? "" : "s"})
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="border rounded bg-ui-bg-base divide-y max-h-72 overflow-y-auto">
+              {redemptions.redemptions.map((r, i) => (
+                <div
+                  key={`${r.code}-${i}`}
+                  className="px-4 py-2 font-mono text-xs flex items-center justify-between"
+                >
+                  <span>{r.code}</span>
+                  <span>
+                    {r.order_display_id ? `#${r.order_display_id}` : "—"} ·{" "}
+                    {r.seller_name || "?"} · ${r.discount.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </Container>
   )
 }
