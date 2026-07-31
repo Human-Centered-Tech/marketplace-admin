@@ -38,8 +38,14 @@ export const PlatformCredits = () => {
     setError(null)
     setResult(null)
 
-    const cents = Math.round(parseFloat(valueDollars) * 100)
-    if (isNaN(cents) || cents < 1) {
+    // DOLLARS, NOT CENTS. This used to send `Math.round(value * 100)` as
+    // `value_cents`, which the backend passed straight into the promotion's
+    // application_method.value. Medusa 2.x money is decimal dollars (the
+    // upstream promotion-create form in this same admin submits a bare
+    // parseFloat), so a "$10" code was minted as a $1,000 one — enough to zero
+    // out a $1,000 order, discovered one single-use redemption at a time.
+    const value = parseFloat(valueDollars)
+    if (isNaN(value) || value <= 0) {
       setError("Value must be a positive dollar amount")
       return
     }
@@ -54,7 +60,7 @@ export const PlatformCredits = () => {
         body: {
           campaign_id: campaignId,
           count,
-          value_cents: cents,
+          value,
           prefix,
         },
       })
@@ -137,6 +143,9 @@ export const PlatformCredits = () => {
               value={valueDollars}
               onChange={(e) => setValueDollars(e.target.value)}
             />
+            <Text className="text-ui-fg-subtle text-xs mt-1">
+              Dollars, e.g. 10 for a $10 credit.
+            </Text>
           </div>
 
           <div className="col-span-2">
@@ -153,6 +162,19 @@ export const PlatformCredits = () => {
             </Text>
           </div>
         </div>
+
+        {/* State the resulting numbers before the click. This action mints up
+            to 500 live redeemable codes and cannot be undone, and the unit bug
+            it replaced (dollars sent as cents) would have been obvious here. */}
+        {count > 0 && parseFloat(valueDollars) > 0 && (
+          <Text className="text-ui-fg-subtle text-sm mb-3">
+            Will create <strong>{count}</strong> single-use code
+            {count === 1 ? "" : "s"} worth{" "}
+            <strong>${parseFloat(valueDollars).toFixed(2)}</strong> each —{" "}
+            <strong>${(count * parseFloat(valueDollars)).toFixed(2)}</strong>{" "}
+            total against the campaign budget. This can't be undone.
+          </Text>
+        )}
 
         {error && (
           <Text className="text-ui-fg-error text-sm mb-3">{error}</Text>
