@@ -277,6 +277,10 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
           to: "/directory/unlinked",
         },
         {
+          label: "Onboarding Drop-offs",
+          to: "/directory/onboarding-dropoffs",
+        },
+        {
           label: "Categories",
           to: "/directory/categories",
         },

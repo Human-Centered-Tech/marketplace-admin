@@ -408,6 +408,37 @@ export const useClaimIntents = (
   }
 }
 
+// Onboarding drop-offs (punchlist c721, 8/11) — INACTIVE sellers with a
+// registered member: real people who created a vendor account but never
+// finished go-live. Brooke's targeted-email queue; refreshes itself, unlike
+// the one-off list pulls.
+
+export const onboardingDropoffQueryKeys = queryKeysFactory("onboarding-dropoff")
+
+export const useOnboardingDropoffs = (
+  query?: Record<string, string | number | undefined>
+) => {
+  const { data, ...other } = useQuery({
+    queryKey: onboardingDropoffQueryKeys.list(query),
+    queryFn: () =>
+      sdk.client.fetch<{
+        sellers: any[]
+        count: number
+        // Our own test accounts are hidden by default so exports are
+        // send-ready — the count keeps them from being invisible.
+        internal_count: number
+        internal_hidden: boolean
+      }>("/admin/directory/onboarding-dropoffs", { method: "GET", query }),
+  })
+  return {
+    sellers: data?.sellers,
+    count: data?.count,
+    internalCount: data?.internal_count ?? 0,
+    internalHidden: data?.internal_hidden ?? true,
+    ...other,
+  }
+}
+
 export const useVoidClaimIntent = () => {
   const queryClient = useQueryClient()
   return useMutation({
