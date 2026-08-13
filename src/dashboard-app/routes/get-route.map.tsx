@@ -866,6 +866,11 @@ export function getRouteMap({
                     import("../../routes/directory/directory-unlinked"),
                 },
                 {
+                  path: "onboarding-dropoffs",
+                  lazy: () =>
+                    import("../../routes/directory/onboarding-dropoffs"),
+                },
+                {
                   path: ":id",
                   lazy: () =>
                     import("../../routes/directory/directory-detail"),
