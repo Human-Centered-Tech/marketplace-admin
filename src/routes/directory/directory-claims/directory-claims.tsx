@@ -106,8 +106,10 @@ export const DirectoryClaims = () => {
           <div>
             <Heading level="h1">Claim Attempts</Heading>
             <Text className="text-ui-fg-subtle mt-1">
-              Every listing claim from attestation on — attested means awaiting
-              payment; completed means ownership transferred.
+              Every listing claim from attestation on — completed means
+              ownership transferred, which happens before payment. The
+              Paid / Payment due badge shows whether the membership has
+              actually been paid for.
             </Text>
           </div>
           <Input
@@ -182,6 +184,23 @@ export const DirectoryClaims = () => {
                   {intent.grandfathered && (
                     <Badge color="blue">Grandfathered</Badge>
                   )}
+                  {/* "Completed" means ownership transferred — for funnel
+                      claims that happens at signup, BEFORE payment (draft-on-
+                      claim, 7/10). Without a payment badge an unpaid claim is
+                      indistinguishable from a paid one (Brooke, 8/11). Paid =
+                      the listing carries a Stripe sub or is active (admin
+                      Link tool also activates); otherwise the membership is
+                      still owed. Grandfathered members owe nothing. Listing
+                      row can be gone (left join) — then show neither. */}
+                  {intent.status === "completed" &&
+                    !intent.grandfathered &&
+                    intent.listing_subscription_status &&
+                    (intent.listing_stripe_subscription_id ||
+                    intent.listing_subscription_status === "active" ? (
+                      <Badge color="green">Paid</Badge>
+                    ) : (
+                      <Badge color="red">Payment due</Badge>
+                    ))}
                   <Badge color={statusColors[intent.status] || "grey"}>
                     {intent.status}
                   </Badge>
