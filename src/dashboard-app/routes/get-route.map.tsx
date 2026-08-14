@@ -1011,6 +1011,11 @@ export function getRouteMap({
                   lazy: () =>
                     import("../../routes/analytics/analytics-overview"),
                 },
+                {
+                  path: "entities",
+                  lazy: () =>
+                    import("../../routes/analytics/analytics-entities"),
+                },
               ],
             },
             {
