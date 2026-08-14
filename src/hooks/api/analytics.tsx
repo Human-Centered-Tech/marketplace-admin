@@ -28,6 +28,7 @@ export const useAnalyticsEntities = (
           clicks: number
           cart_adds: number
           favorites: number
+          registry_adds: number
         }[]
         count: number
         entity_type: string
@@ -59,8 +60,15 @@ export const useAnalyticsEntity = (
           clicks: number
           cart_adds: number
           favorites: number
+          registry_adds: number
         }[]
-        totals: { views: number; clicks: number; cart_adds: number; favorites: number }
+        totals: {
+          views: number
+          clicks: number
+          cart_adds: number
+          favorites: number
+          registry_adds: number
+        }
       }>(`/admin/analytics/entities/${id}`, { method: "GET", query }),
     enabled: !!id,
   })

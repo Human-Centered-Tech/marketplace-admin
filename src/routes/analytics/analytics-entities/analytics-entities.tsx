@@ -1,6 +1,7 @@
-import { Badge, Button, Container, Heading, Input, Text } from "@medusajs/ui"
+import { Badge, Button, Container, Heading, Input, Text, toast } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
+import { sdk } from "../../../lib/client"
 import {
   useAnalyticsEntities,
   useAnalyticsEntity,
@@ -8,11 +9,28 @@ import {
 
 const PAGE_SIZE = 25
 
-const TYPES: { key: string; label: string }[] = [
-  { key: "directory_listing", label: "Listings" },
-  { key: "seller", label: "Shops" },
-  { key: "product", label: "Products" },
-  { key: "gift_guide", label: "Guides" },
+type NumericCol = { key: string; label: string }
+
+const VIEWS: NumericCol = { key: "views", label: "Views" }
+const CLICKS: NumericCol = { key: "clicks", label: "Clicks" }
+
+const TYPES: { key: string; label: string; cols: NumericCol[] }[] = [
+  { key: "directory_listing", label: "Listings", cols: [VIEWS, CLICKS] },
+  { key: "seller", label: "Shops", cols: [VIEWS, CLICKS] },
+  {
+    key: "product",
+    label: "Products",
+    cols: [
+      VIEWS,
+      { key: "cart_adds", label: "Cart adds" },
+      { key: "favorites", label: "Favorites" },
+      { key: "registry_adds", label: "Registry" },
+    ],
+  },
+  { key: "category", label: "Categories", cols: [VIEWS] },
+  { key: "gift_guide", label: "Guides", cols: [VIEWS] },
+  { key: "barter_listing", label: "Trade", cols: [VIEWS] },
+  { key: "search_query", label: "Searches", cols: [VIEWS] },
 ]
 
 const RANGES: { days: number; label: string }[] = [
@@ -23,9 +41,10 @@ const RANGES: { days: number; label: string }[] = [
 ]
 
 /**
- * "Listings & Shops" analytics (punchlist carry-admin-analytics): per-entity
- * numbers Brooke can read without logging in as the vendor. Top lists by page
- * views with clicks / cart-adds / favorites, and a per-row daily breakdown.
+ * "Listings & Shops" analytics (punchlist carry-admin-analytics; SOW Exhibit A
+ * §11.3-11.4): per-entity numbers Brooke can read without logging in as the
+ * vendor — listings, shops, products, categories, guides, trade listings, and
+ * search terms. Top lists by page views, per-row daily breakdown, CSV export.
  * Web events only — the mobile app doesn't emit analytics yet.
  */
 export const AnalyticsEntities = () => {
@@ -35,6 +54,7 @@ export const AnalyticsEntities = () => {
   const qParam = searchParams.get("q") || ""
   const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   const [searchInput, setSearchInput] = useState(qParam)
   useEffect(() => {
@@ -79,7 +99,48 @@ export const AnalyticsEntities = () => {
   const total = count ?? 0
   const canPrev = offset > 0
   const canNext = offset + PAGE_SIZE < total
-  const showCommerce = entityType === "product"
+  const typeDef = TYPES.find((t) => t.key === entityType) ?? TYPES[0]
+  const gridTemplate = `1fr ${typeDef.cols.map(() => "80px").join(" ")}`
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const exportQuery: Record<string, string | number> = {
+        entity_type: entityType,
+        days,
+        limit: 500,
+      }
+      if (qParam) exportQuery.q = qParam
+      const data = await sdk.client.fetch<{ entities: any[] }>(
+        "/admin/analytics/entities",
+        { method: "GET", query: exportQuery }
+      )
+      const rows = data.entities || []
+      const esc = (v: unknown) => {
+        const s = v == null ? "" : String(v)
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+      }
+      const csv = [
+        ["Name", "Id", ...typeDef.cols.map((c) => c.label)].join(","),
+        ...rows.map((e: any) =>
+          [esc(e.name), esc(e.id), ...typeDef.cols.map((c) => esc(e[c.key]))].join(",")
+        ),
+      ].join("\n")
+      const url = URL.createObjectURL(
+        new Blob([csv], { type: "text/csv;charset=utf-8" })
+      )
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `analytics-${typeDef.key}-${days || "all"}d-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(`Exported ${rows.length} rows.`)
+    } catch (e: any) {
+      toast.error(e?.message || "Export failed.")
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <Container className="p-0">
@@ -88,21 +149,32 @@ export const AnalyticsEntities = () => {
           <div>
             <Heading level="h1">Listings &amp; Shops</Heading>
             <Text className="text-ui-fg-subtle mt-1">
-              Page views per listing, shop, and product — no vendor login
+              Per-listing, per-shop, and per-product numbers — no vendor login
               needed. Web traffic only (the app doesn&rsquo;t report yet);
-              favorites &amp; purchases tracked since Jul 31.
+              favorites &amp; purchases tracked since Jul 31, searches &amp;
+              sessions since Aug 13.
             </Text>
           </div>
-          <Input
-            type="search"
-            placeholder="Search by name…"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="w-64"
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              type="search"
+              placeholder="Search by name…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-56"
+            />
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={handleExport}
+              isLoading={exporting}
+            >
+              Export CSV
+            </Button>
+          </div>
         </div>
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {TYPES.map((t) => (
               <Button
                 key={t.key}
@@ -137,18 +209,23 @@ export const AnalyticsEntities = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-[1fr_repeat(4,72px)] gap-x-2 px-4 py-2 border-b text-ui-fg-subtle text-xs">
+          <div
+            className="grid gap-x-2 px-4 py-2 border-b text-ui-fg-subtle text-xs"
+            style={{ gridTemplateColumns: gridTemplate }}
+          >
             <span>Name</span>
-            <span className="text-right">Views</span>
-            <span className="text-right">Clicks</span>
-            <span className="text-right">{showCommerce ? "Cart adds" : "—"}</span>
-            <span className="text-right">{showCommerce ? "Favorites" : "—"}</span>
+            {typeDef.cols.map((c) => (
+              <span key={c.key} className="text-right">
+                {c.label}
+              </span>
+            ))}
           </div>
           <div className="divide-y">
-            {entities.map((e) => (
+            {entities.map((e: any) => (
               <div key={e.id}>
                 <div
-                  className="grid grid-cols-[1fr_repeat(4,72px)] gap-x-2 items-center px-4 py-3 hover:bg-ui-bg-subtle cursor-pointer"
+                  className="grid gap-x-2 items-center px-4 py-3 hover:bg-ui-bg-subtle cursor-pointer"
+                  style={{ gridTemplateColumns: gridTemplate }}
                   onClick={() =>
                     setExpandedId(expandedId === e.id ? null : e.id)
                   }
@@ -157,23 +234,24 @@ export const AnalyticsEntities = () => {
                     <Text className="font-medium truncate">{e.name}</Text>
                     <Text className="text-ui-fg-muted text-xs truncate">
                       {e.id}
-                      {e.unresolved && entityType !== "gift_guide" && (
-                        <Badge color="grey" className="ml-2">
-                          not found — deleted?
-                        </Badge>
-                      )}
+                      {e.unresolved &&
+                        !["gift_guide", "search_query", "category"].includes(
+                          entityType
+                        ) && (
+                          <Badge color="grey" className="ml-2">
+                            not found — deleted?
+                          </Badge>
+                        )}
                     </Text>
                   </div>
-                  <Text className="text-right tabular-nums">{e.views}</Text>
-                  <Text className="text-right tabular-nums text-ui-fg-subtle">
-                    {e.clicks || "–"}
-                  </Text>
-                  <Text className="text-right tabular-nums text-ui-fg-subtle">
-                    {showCommerce ? e.cart_adds || "–" : ""}
-                  </Text>
-                  <Text className="text-right tabular-nums text-ui-fg-subtle">
-                    {showCommerce ? e.favorites || "–" : ""}
-                  </Text>
+                  {typeDef.cols.map((c, i) => (
+                    <Text
+                      key={c.key}
+                      className={`text-right tabular-nums ${i > 0 ? "text-ui-fg-subtle" : ""}`}
+                    >
+                      {i > 0 ? e[c.key] || "–" : e[c.key]}
+                    </Text>
+                  ))}
                 </div>
                 {expandedId === e.id && (
                   <EntityDaily id={e.id} entityType={entityType} days={days} />
@@ -246,15 +324,17 @@ const EntityDaily = ({
     )
   }
 
+  const totals = entity.totals as Record<string, number>
   const maxViews = Math.max(...entity.daily.map((d) => d.views), 1)
 
   return (
     <div className="px-4 py-3 bg-ui-bg-subtle">
       <Text className="text-ui-fg-subtle text-xs mb-2">
-        Daily page views · {entity.totals.views} total
-        {entity.totals.clicks > 0 && ` · ${entity.totals.clicks} clicks`}
-        {entity.totals.cart_adds > 0 && ` · ${entity.totals.cart_adds} cart adds`}
-        {entity.totals.favorites > 0 && ` · ${entity.totals.favorites} favorites`}
+        Daily page views · {totals.views} total
+        {totals.clicks > 0 && ` · ${totals.clicks} clicks`}
+        {totals.cart_adds > 0 && ` · ${totals.cart_adds} cart adds`}
+        {totals.favorites > 0 && ` · ${totals.favorites} favorites`}
+        {totals.registry_adds > 0 && ` · ${totals.registry_adds} registry adds`}
       </Text>
       <div className="flex flex-col gap-0.5">
         {entity.daily.map((d) => (
