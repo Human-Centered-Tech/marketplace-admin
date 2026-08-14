@@ -92,6 +92,12 @@ export const AnalyticsOverview = () => {
           <Text className="text-ui-fg-subtle mt-1">
             Total events: {totalEvents}
           </Text>
+          {data?.avg_session_minutes != null && (
+            <Text className="text-ui-fg-subtle mt-1">
+              Avg session length: {data.avg_session_minutes} min (across{" "}
+              {data.measured_sessions} measured sessions; tracked since Aug 13)
+            </Text>
+          )}
         </div>
       </Container>
 
