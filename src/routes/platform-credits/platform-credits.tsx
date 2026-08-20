@@ -35,9 +35,11 @@ export const PlatformCredits = () => {
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Redemptions: which codes were actually used, and what each seller absorbed.
-  // These codes are discounts, so the merchant currently eats them; this is the
-  // list Brooke reimburses from until credit is modelled as tender.
+  // Redemptions: which codes were used and what each order discounted. Since
+  // the platform-funded payout integration (lib/platform-credit.ts backend),
+  // sellers are made whole automatically in the daily payout run — this list
+  // is MONITORING (what the platform's Stripe balance must cover), not a
+  // reimbursement worksheet.
   const [redemptions, setRedemptions] = useState<{
     by_seller: { seller_id: string; seller_name: string | null; orders: number; total: number }[]
     total_discount: number
@@ -104,10 +106,14 @@ export const PlatformCredits = () => {
       <div className="p-6 border-b">
         <Heading level="h1">Platform Credits</Heading>
         <Text className="text-ui-fg-subtle mt-2">
-          Bulk-generate single-use promotional codes. Each code is a discount
-          applied at checkout, so it is currently funded by the MERCHANT, not
-          by the platform — a Catholic Owned–funded gift card needs credit
-          modelled as tender instead. Attach a campaign to cap total
+          Bulk-generate single-use gift-card codes. Codes in the default pool
+          (or any PLATFORM-CREDITS campaign) are funded by Catholic Owned: when
+          a buyer redeems one, the daily payout automatically makes the seller
+          whole from the platform&apos;s Stripe balance — keep that balance
+          funded to cover outstanding codes. Codes generated into any other
+          campaign are merchant-funded (for sellers&apos; own sales).
+          Renaming a campaign changes who pays — don&apos;t rename
+          PLATFORM-CREDITS campaigns. Attach a campaign to cap total
           outstanding credit; manage campaigns on the{" "}
           <a href="/campaigns" className="underline text-ui-fg-interactive">
             Campaigns
@@ -258,9 +264,11 @@ export const PlatformCredits = () => {
           Redeemed Codes
         </Heading>
         <Text className="text-ui-fg-subtle text-sm mb-4">
-          Codes are discounts, so the seller's payout is reduced by the amount
-          redeemed. If Catholic Owned is funding the giveaway, these are the
-          merchants owed a reimbursement.
+          What each redeemed code discounted, by seller. For platform-funded
+          codes (the default pool / PLATFORM-CREDITS campaigns) sellers are
+          made whole automatically in the daily payout, drawn from the
+          platform&apos;s Stripe balance — this list shows what that balance
+          needs to cover. No manual reimbursement required.
         </Text>
 
         {redemptionsError && (
@@ -276,9 +284,10 @@ export const PlatformCredits = () => {
         {redemptions && redemptions.redemptions.length > 0 && (
           <>
             <Text className="text-sm mb-3">
-              <strong>${redemptions.total_discount.toFixed(2)}</strong> absorbed
-              by sellers across {redemptions.redemptions.length} redemption
-              {redemptions.redemptions.length === 1 ? "" : "s"}.
+              <strong>${redemptions.total_discount.toFixed(2)}</strong> redeemed
+              across {redemptions.redemptions.length} redemption
+              {redemptions.redemptions.length === 1 ? "" : "s"} — covered by
+              the platform in seller payouts.
             </Text>
             <div className="border rounded bg-ui-bg-base divide-y mb-4">
               {redemptions.by_seller.map((s) => (
