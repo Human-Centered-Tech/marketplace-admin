@@ -32,6 +32,7 @@ import { PremiumStatesEditor } from "./premium-states"
 import { ServicedStatesEditor } from "./serviced-states"
 import { FeaturedHomepageSection } from "./featured-homepage-section"
 import { TierOverrideSection } from "./tier-override"
+import { BusinessTypeSwitch } from "./business-type-switch"
 
 export const DirectoryDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -269,6 +270,7 @@ export const DirectoryDetail = () => {
           </div>
         </div>
         <TierOverrideSection listing={listing} />
+        <BusinessTypeSwitch listing={listing} />
       </Container>
 
       {/* (Parish affiliations are shown + edited by the ParishAffiliations
