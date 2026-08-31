@@ -820,6 +820,23 @@ export function getRouteMap({
               ],
             },
             {
+              // Published products shoppers still can't see — no price, or the
+              // seller's store isn't live. Sellers see "Published" and assume
+              // they're fine, so this is the only place it surfaces.
+              path: "/catalog-health",
+              errorElement: <ErrorBoundary />,
+              handle: {
+                breadcrumb: () => "Catalog Health",
+              },
+              children: [
+                {
+                  path: "",
+                  lazy: () =>
+                    import("../../routes/catalog-health/catalog-health-list"),
+                },
+              ],
+            },
+            {
               // People view for the account taxonomy (Brooke 7/7): customers
               // who own directory listings, flagged Merchant when they also
               // have a storefront.
