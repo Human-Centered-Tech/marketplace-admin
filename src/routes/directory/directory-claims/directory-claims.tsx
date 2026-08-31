@@ -166,9 +166,21 @@ export const DirectoryClaims = () => {
                 onClick={() => navigate(`/directory/${intent.listing_id}`)}
               >
                 <div>
+                  {/* business_name comes from a LEFT JOIN on the listing. When
+                      the listing was deleted (e.g. to free a slug) the join is
+                      null and this used to print a bare ULID. Prefer the name
+                      snapshot the intent captured; otherwise say plainly that
+                      the listing is gone instead of showing an opaque id. */}
                   <Text className="font-medium">
-                    {intent.business_name || intent.listing_id}
+                    {intent.business_name ||
+                      intent.metadata?.business_name ||
+                      "Listing deleted"}
                   </Text>
+                  {!intent.business_name && (
+                    <Text className="text-ui-fg-muted text-xs font-mono">
+                      {intent.listing_id}
+                    </Text>
+                  )}
                   <Text className="text-ui-fg-subtle text-xs">
                     {intent.email || "no email captured yet"} ·{" "}
                     {new Date(intent.created_at).toLocaleString()}

@@ -131,10 +131,22 @@ export const DirectoryList = () => {
         <>
           <div className="divide-y">
             {(listings as any[]).map((listing: any) => (
+              // role/tabIndex/keydown so the row is reachable by keyboard and
+              // exposed to the accessibility tree — as a bare <div onClick> it
+              // was invisible to screen readers and to UI automation.
               <div
                 key={listing.id}
-                className="flex items-center justify-between p-4 hover:bg-ui-bg-subtle cursor-pointer"
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${listing.business_name || listing.id}`}
+                className="flex items-center justify-between p-4 hover:bg-ui-bg-subtle cursor-pointer focus:outline-none focus:bg-ui-bg-subtle focus-visible:ring-2 focus-visible:ring-ui-border-interactive"
                 onClick={() => navigate(`/directory/${listing.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    navigate(`/directory/${listing.id}`)
+                  }
+                }}
               >
                 <div className="flex items-center gap-4">
                   {listing.logo_url ? (

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   Container,
   Heading,
@@ -33,15 +33,35 @@ export const DirectoryCategories = () => {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<CategoryForm>(emptyForm)
 
-  const handleSubmit = async () => {
-    if (editingId) {
-      await updateCategory.mutateAsync({ id: editingId, ...form })
-    } else {
-      await createCategory.mutateAsync(form)
+  // The form renders at the top of the page. Clicking Edit on a row far down
+  // a 78-row table used to open it off-screen, so the button read as "does
+  // nothing" — the same complaint that filed the delete bug (Brooke, 7/16).
+  const formRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (showForm) {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
     }
-    setForm(emptyForm)
-    setShowForm(false)
-    setEditingId(null)
+  }, [showForm, editingId])
+
+  const handleSubmit = async () => {
+    // Both mutations reject on a duplicate slug ("Directory category with
+    // slug: x, already exists."). Without this catch the rejection was
+    // unhandled: no toast, form stuck open, button stuck disabled — the save-
+    // feedback defect class the 7/31 audit fixed elsewhere but missed here.
+    try {
+      if (editingId) {
+        await updateCategory.mutateAsync({ id: editingId, ...form })
+        toast.success("Category updated")
+      } else {
+        await createCategory.mutateAsync(form)
+        toast.success("Category created")
+      }
+      setForm(emptyForm)
+      setShowForm(false)
+      setEditingId(null)
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save this category.")
+    }
   }
 
   const handleEdit = (category: any) => {
@@ -99,7 +119,7 @@ export const DirectoryCategories = () => {
       </div>
 
       {showForm && (
-        <div className="p-6 border-b bg-ui-bg-subtle">
+        <div ref={formRef} className="p-6 border-b bg-ui-bg-subtle">
           <Heading level="h2" className="mb-4">
             {editingId ? "Edit Category" : "Add Category"}
           </Heading>
