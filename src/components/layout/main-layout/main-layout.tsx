@@ -260,6 +260,13 @@ const useCoreRoutes = (): Omit<INavItem, "pathname">[] => {
       to: "/business-owners",
     },
     {
+      // Published products shoppers still can't see — no price, or the
+      // seller's store isn't live. Nothing else surfaces these.
+      icon: <Shopping />,
+      label: "Catalog Health",
+      to: "/catalog-health",
+    },
+    {
       icon: <Buildings />,
       label: "Directory Listings",
       to: "/directory",

@@ -33,6 +33,26 @@ type OrderCreateFulfillmentFormProps = {
   requiresShipping: boolean
 }
 
+/**
+ * Does a line item belong to the shipping profile of the selected shipping
+ * option? Items are grouped by profile so one fulfillment doesn't mix
+ * profiles.
+ *
+ * An UNKNOWN profile counts as a match. A line item resolves its profile
+ * through variant → product, and both go null once the merchant deletes the
+ * product — which happens after the sale more often than you'd hope (prod
+ * order #29, 8/28: product deleted the day after purchase). Treating unknown
+ * as "doesn't match" silently dropped every such item from the payload, so
+ * the request went out with an empty `items` array and the API rejected the
+ * whole fulfillment with "Value for field 'items' too small" — an order that
+ * could never be fulfilled from the UI, with no hint as to why. The order's
+ * own line items are the source of truth here; they survive the deletion.
+ */
+const itemMatchesShippingProfile = (
+  itemProfileId: string | undefined,
+  selectedProfileId: string | undefined
+) => !itemProfileId || itemProfileId === selectedProfileId
+
 export function OrderCreateFulfillmentForm({
   order,
   requiresShipping,
@@ -137,8 +157,11 @@ export function OrderCreateFulfillmentForm({
         return acc
       }, {} as any)
 
-      items = items.filter(
-        ({ id }) => itemShippingProfileMap[id] === selectedShippingProfileId
+      items = items.filter(({ id }) =>
+        itemMatchesShippingProfile(
+          itemShippingProfileMap[id],
+          selectedShippingProfileId
+        )
       )
     }
 
@@ -345,11 +368,16 @@ export function OrderCreateFulfillmentForm({
 
                     <div className="flex flex-col gap-y-1">
                       {fulfillableItems.map((item) => {
+                        // Same rule as the submit filter — otherwise an item
+                        // whose product was deleted renders greyed out and
+                        // untouchable while still being submitted.
                         const isShippingProfileMatching =
-                          shipping_options.find(
-                            (o) => o.id === shippingOptionId
-                          )?.shipping_profile_id ===
-                          item.variant?.product?.shipping_profile?.id
+                          itemMatchesShippingProfile(
+                            item.variant?.product?.shipping_profile?.id,
+                            shipping_options.find(
+                              (o) => o.id === shippingOptionId
+                            )?.shipping_profile_id
+                          )
 
                         return (
                           <OrderCreateFulfillmentItem

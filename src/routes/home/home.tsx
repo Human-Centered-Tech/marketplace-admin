@@ -36,6 +36,16 @@ export const Home = () => {
         .catch(() => null),
   })
 
+  // Published products shoppers can't actually see (no price, seller's store
+  // not live). Sellers get no warning, so the count belongs on this dashboard.
+  const { data: catalogHealth } = useQuery({
+    queryKey: ["catalog-health-count"],
+    queryFn: () =>
+      sdk.client
+        .fetch<{ count: number }>("/admin/catalog-health")
+        .catch(() => ({ count: 0 })),
+  })
+
   const { data: pendingDirectory } = useQuery({
     queryKey: ["directory-pending"],
     queryFn: () =>
@@ -70,7 +80,7 @@ export const Home = () => {
         <Heading level="h2" className="mb-4">
           Pending Actions
         </Heading>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <PendingTile
             label="Directory verifications"
             count={pendingDirectory?.count ?? 0}
@@ -88,6 +98,12 @@ export const Home = () => {
             count={0}
             to="/sellers"
             description="New seller accounts to review"
+          />
+          <PendingTile
+            label="Hidden products"
+            count={catalogHealth?.count ?? 0}
+            to="/catalog-health"
+            description="Published but invisible to shoppers"
           />
         </div>
       </div>
