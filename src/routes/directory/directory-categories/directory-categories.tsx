@@ -46,21 +46,25 @@ export const DirectoryCategories = () => {
   const handleSubmit = async () => {
     // Both mutations reject on a duplicate slug ("Directory category with
     // slug: x, already exists."). Without this catch the rejection was
-    // unhandled: no toast, form stuck open, button stuck disabled — the save-
-    // feedback defect class the 7/31 audit fixed elsewhere but missed here.
+    // unhandled: no toast, form stuck open, button stuck disabled. Keep the
+    // form open on failure so the entry survives.
     try {
       if (editingId) {
         await updateCategory.mutateAsync({ id: editingId, ...form })
-        toast.success("Category updated")
       } else {
         await createCategory.mutateAsync(form)
-        toast.success("Category created")
       }
+      toast.success(editingId ? "Category updated." : "Category created.")
       setForm(emptyForm)
       setShowForm(false)
       setEditingId(null)
     } catch (e: any) {
-      toast.error(e?.message || "Could not save this category.")
+      toast.error(
+        e?.message ||
+          (editingId
+            ? "Couldn't save the category."
+            : "Couldn't create the category.")
+      )
     }
   }
 

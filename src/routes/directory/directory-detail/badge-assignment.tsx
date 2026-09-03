@@ -1,4 +1,4 @@
-import { Container, Heading, Text, Button, Select } from "@medusajs/ui"
+import { Container, Heading, Text, Button, Select, toast } from "@medusajs/ui"
 import { useState } from "react"
 import {
   useDirectoryBadges,
@@ -23,12 +23,22 @@ export const BadgeAssignment = ({ listingId }: { listingId: string }) => {
 
   const handleAssign = async () => {
     if (!selected) return
-    await assign.mutateAsync({ listingId, badgeId: selected })
-    setSelected("")
+    try {
+      await assign.mutateAsync({ listingId, badgeId: selected })
+      toast.success("Badge assigned.")
+      setSelected("")
+    } catch (e: any) {
+      toast.error(e?.message || "Could not assign that badge.")
+    }
   }
 
   const handleRemove = async (badgeId: string) => {
-    await remove.mutateAsync({ listingId, badgeId })
+    try {
+      await remove.mutateAsync({ listingId, badgeId })
+      toast.success("Badge removed.")
+    } catch (e: any) {
+      toast.error(e?.message || "Could not remove that badge.")
+    }
   }
 
   if (loadingAll || loadingAssigned) {

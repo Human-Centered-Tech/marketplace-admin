@@ -1,4 +1,4 @@
-import { Container, Heading, Text, Button } from "@medusajs/ui"
+import { Container, Heading, Text, Button, toast } from "@medusajs/ui"
 import { useNavigate } from "react-router-dom"
 import {
   usePendingListings,
@@ -16,7 +16,18 @@ export const DirectoryPending = () => {
     action: "approve" | "reject"
   ) => {
     e.stopPropagation()
-    await verifyMutation.mutateAsync({ id, action })
+    try {
+      await verifyMutation.mutateAsync({ id, action })
+      toast.success(
+        action === "approve" ? "Listing approved." : "Listing rejected."
+      )
+    } catch (err: any) {
+      // The row stays in the queue on failure, which reads as "nothing
+      // happened" — say why instead.
+      toast.error(
+        err?.message || `Could not ${action} this listing. Please try again.`
+      )
+    }
   }
 
   return (

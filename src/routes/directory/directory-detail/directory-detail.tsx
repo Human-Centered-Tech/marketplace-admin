@@ -158,8 +158,24 @@ export const DirectoryDetail = () => {
   }
 
   const handleVerify = async (action: "approve" | "reject") => {
-    await verifyMutation.mutateAsync({ id: id!, action, notes: notes || undefined })
-    navigate("/directory")
+    try {
+      await verifyMutation.mutateAsync({
+        id: id!,
+        action,
+        notes: notes || undefined,
+      })
+      toast.success(
+        action === "approve" ? "Listing approved." : "Listing rejected."
+      )
+      navigate("/directory")
+    } catch (e: any) {
+      // On failure the navigate() never runs, so without this the admin was
+      // left on this page with a button that had simply stopped spinning.
+      toast.error(
+        e?.message ||
+          `Could not ${action} this listing. Please try again.`
+      )
+    }
   }
 
   return (
@@ -304,10 +320,15 @@ export const DirectoryDetail = () => {
               variant="secondary"
               size="small"
               onClick={async () => {
-                await updateMutation.mutateAsync({
-                  id: id!,
-                  vendor_id: null,
-                })
+                try {
+                  await updateMutation.mutateAsync({
+                    id: id!,
+                    vendor_id: null,
+                  })
+                  toast.success("Unlinked from the vendor's storefront.")
+                } catch (e: any) {
+                  toast.error(e?.message || "Could not unlink this listing.")
+                }
               }}
               isLoading={updateMutation.isPending}
             >
