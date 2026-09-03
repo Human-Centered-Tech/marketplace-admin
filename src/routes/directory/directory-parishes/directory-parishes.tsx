@@ -6,6 +6,7 @@ import {
   Button,
   Input,
   Label,
+  toast,
 } from "@medusajs/ui"
 import {
   useDirectoryParishes,
@@ -34,14 +35,25 @@ export const DirectoryParishes = () => {
   const [form, setForm] = useState<ParishForm>(emptyForm)
 
   const handleSubmit = async () => {
-    if (editingId) {
-      await updateParish.mutateAsync({ id: editingId, ...form })
-    } else {
-      await createParish.mutateAsync(form)
+    try {
+      if (editingId) {
+        await updateParish.mutateAsync({ id: editingId, ...form })
+      } else {
+        await createParish.mutateAsync(form)
+      }
+      toast.success(editingId ? "Parish updated." : "Parish created.")
+      setForm(emptyForm)
+      setShowForm(false)
+      setEditingId(null)
+    } catch (e: any) {
+      // Form stays open and populated so the entry isn't lost.
+      toast.error(
+        e?.message ||
+          (editingId
+            ? "Couldn't save the parish."
+            : "Couldn't create the parish.")
+      )
     }
-    setForm(emptyForm)
-    setShowForm(false)
-    setEditingId(null)
   }
 
   const handleEdit = (parish: any) => {
@@ -57,7 +69,12 @@ export const DirectoryParishes = () => {
 
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this parish?")) {
-      await deleteParish.mutateAsync(id)
+      try {
+        await deleteParish.mutateAsync(id)
+        toast.success("Parish deleted.")
+      } catch (e: any) {
+        toast.error(e?.message || "Could not delete this parish.")
+      }
     }
   }
 

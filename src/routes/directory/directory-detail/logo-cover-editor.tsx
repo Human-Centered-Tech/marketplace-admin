@@ -145,15 +145,25 @@ export const LogoCoverEditor = ({ listing }: { listing: any }) => {
             dashboard; you can upload or replace them here.
           </Text>
         </div>
-        <Button
-          variant="primary"
-          size="small"
-          onClick={handleSave}
-          disabled={!dirty || uploading !== null}
-          isLoading={update.isPending}
-        >
-          Save images
-        </Button>
+        {/* Save is disabled while an upload is still in flight. Without a
+            visible reason that looks identical to a dead button — clicking it
+            mid-upload reads as "nothing happened". Say which state we're in. */}
+        <div className="flex items-center gap-3">
+          {uploading !== null && (
+            <Text className="text-ui-fg-subtle text-sm">
+              Uploading {uploading === "logo" ? "logo" : "cover image"}…
+            </Text>
+          )}
+          <Button
+            variant="primary"
+            size="small"
+            onClick={handleSave}
+            disabled={!dirty || uploading !== null}
+            isLoading={update.isPending}
+          >
+            Save images
+          </Button>
+        </div>
       </div>
 
       {savedBanner && (

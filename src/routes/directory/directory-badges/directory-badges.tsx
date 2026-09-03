@@ -7,6 +7,7 @@ import {
   Input,
   Label,
   Textarea,
+  toast,
 } from "@medusajs/ui"
 import {
   useDirectoryBadges,
@@ -49,14 +50,24 @@ export const DirectoryBadges = () => {
       description: form.description || null,
       icon_url: form.icon_url || null,
     }
-    if (editingId) {
-      await updateBadge.mutateAsync({ id: editingId, ...payload })
-    } else {
-      await createBadge.mutateAsync(payload)
+    try {
+      if (editingId) {
+        await updateBadge.mutateAsync({ id: editingId, ...payload })
+      } else {
+        await createBadge.mutateAsync(payload)
+      }
+      toast.success(editingId ? "Badge updated." : "Badge created.")
+      setForm(emptyForm)
+      setShowForm(false)
+      setEditingId(null)
+    } catch (e: any) {
+      // Leave the form open and populated so the entry isn't lost — a slug
+      // conflict is the common failure and it's fixable in place.
+      toast.error(
+        e?.message ||
+          (editingId ? "Couldn't save the badge." : "Couldn't create the badge.")
+      )
     }
-    setForm(emptyForm)
-    setShowForm(false)
-    setEditingId(null)
   }
 
   const handleEdit = (badge: any) => {
@@ -78,7 +89,12 @@ export const DirectoryBadges = () => {
         "Delete this badge? It will be removed from any listings currently using it."
       )
     ) {
-      await deleteBadge.mutateAsync(id)
+      try {
+        await deleteBadge.mutateAsync(id)
+        toast.success("Badge deleted.")
+      } catch (e: any) {
+        toast.error(e?.message || "Could not delete this badge.")
+      }
     }
   }
 
