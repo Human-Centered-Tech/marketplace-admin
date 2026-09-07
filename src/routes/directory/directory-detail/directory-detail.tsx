@@ -19,6 +19,7 @@ import {
   useVerifyDirectoryListing,
   useUpdateDirectoryListing,
   useLinkDirectoryListing,
+  useUnclaimDirectoryListing,
   useDeleteDirectoryListing,
 } from "../../../hooks/api/directory"
 import { useSeller } from "../../../hooks/api/sellers"
@@ -42,6 +43,7 @@ export const DirectoryDetail = () => {
   const verifyMutation = useVerifyDirectoryListing()
   const updateMutation = useUpdateDirectoryListing()
   const linkMutation = useLinkDirectoryListing()
+  const unclaimMutation = useUnclaimDirectoryListing()
   const deleteMutation = useDeleteDirectoryListing()
   const prompt = usePrompt()
   const [notes, setNotes] = useState("")
@@ -178,6 +180,37 @@ export const DirectoryDetail = () => {
     }
   }
 
+  // "Un-claim" (B1, 9/7): Unlink only detaches the shop and leaves the listing
+  // claimed, so the rightful owner still hits "already claimed". This clears
+  // the owner + shop link and voids the claim intents in one step. Confirmed
+  // first — it is the one control here that takes a member's listing away.
+  const handleUnclaim = async () => {
+    const ok = await prompt({
+      title: "Un-claim this listing?",
+      description: `"${listing.business_name}" goes back to an unclaimed public listing: the owner and any shop link are removed and its claim attempts are voided, so someone else can claim it. Their Stripe membership is NOT cancelled — handle that in Stripe if the claim was wrong.`,
+      confirmText: "Un-claim",
+      cancelText: "Keep claimed",
+    })
+    if (!ok) return
+    try {
+      const res = await unclaimMutation.mutateAsync(listing.id)
+      toast.success(
+        res.voided_claim_intents
+          ? `Listing un-claimed — owner cleared and ${res.voided_claim_intents} claim attempt${
+              res.voided_claim_intents === 1 ? "" : "s"
+            } voided.`
+          : "Listing un-claimed — owner cleared."
+      )
+      if (res.stripe_subscription_id) {
+        toast.warning(
+          `Stripe membership ${res.stripe_subscription_id} is still linked to this listing. Cancel or move it in Stripe if it belonged to the removed owner.`
+        )
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Could not un-claim this listing.")
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Container>
@@ -284,6 +317,18 @@ export const DirectoryDetail = () => {
                 ? `✓ Claimed — ${listing.owner_id}`
                 : "Unclaimed (no owner)"}
             </Text>
+            {listing.owner_id && (
+              <Button
+                variant="secondary"
+                size="small"
+                className="mt-2"
+                data-testid="directory-unclaim"
+                isLoading={unclaimMutation.isPending}
+                onClick={handleUnclaim}
+              >
+                Un-claim
+              </Button>
+            )}
           </div>
         </div>
         <TierOverrideSection listing={listing} />

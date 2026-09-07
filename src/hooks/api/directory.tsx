@@ -194,6 +194,36 @@ export const useLinkDirectoryListing = () => {
   })
 }
 
+// Admin "Un-claim" (9/7 B1): reset a listing to its unclaimed public stub —
+// clears owner + shop link and voids the listing's claim intents. Stripe
+// columns are left alone on purpose (see the backend route); the response
+// echoes any linked sub so the page can say so.
+export const useUnclaimDirectoryListing = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      sdk.client.fetch<{
+        id: string
+        previous_owner_id: string | null
+        previous_vendor_id: string | null
+        voided_claim_intents: number
+        stripe_subscription_id: string | null
+      }>(`/admin/directory/listings/${id}/unclaim`, {
+        method: "POST",
+      }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.detail(id),
+      })
+      queryClient.invalidateQueries({
+        queryKey: directoryListingQueryKeys.all,
+      })
+      queryClient.invalidateQueries({ queryKey: claimIntentQueryKeys.all })
+    },
+  })
+}
+
 // Categories
 
 export const useDirectoryCategories = (
