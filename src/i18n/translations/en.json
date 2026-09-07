@@ -1053,8 +1053,8 @@
     "claim": "Claim",
     "exchange": "Exchange",
     "return": "Return",
-    "cancelWarning": "You are about to cancel the order {{id}}. This action cannot be undone.",
-    "orderCanceled": "Order canceled successfully",
+    "cancelWarning": "Cancel order {{id}} and refund the buyer? This cancels any open (unshipped) fulfillments, refunds the buyer the full amount charged, and reverses the seller's payout for this order. The seller does not need to do anything. This cannot be undone.",
+    "orderCanceled": "Order canceled — buyer refunded and any seller payout reversed.",
     "onDateFromSalesChannel": "{{date}} from {{salesChannel}}",
     "list": {
       "noRecordsMessage": "Your orders will show up here."
