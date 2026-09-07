@@ -393,9 +393,12 @@ export const NetworkingEventDetail = () => {
                 }
               />
               <Text className="text-ui-fg-subtle text-xs mt-1">
-                The Zoom join link attendees see on the event page. (Automatic
-                Zoom meeting creation is coming later — for now, paste the link
-                here.)
+                The Zoom join link attendees see on the event page.{" "}
+                <strong>Leave this blank</strong> and we create the Zoom meeting
+                for you when you publish a virtual or hybrid event, then fill
+                the link in automatically. Paste a link here only when you want
+                to use a meeting you set up yourself — we never overwrite one
+                you have entered.
               </Text>
             </div>
             <div className="mb-4">
