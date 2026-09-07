@@ -376,6 +376,7 @@ export const DirectoryDetail = () => {
                 }
               }}
               isLoading={updateMutation.isPending}
+              data-testid="directory-unlink"
             >
               Unlink
             </Button>
@@ -431,6 +432,7 @@ export const DirectoryDetail = () => {
                   }
                 }}
                 isLoading={linkMutation.isPending}
+                data-testid="directory-link"
               >
                 Link
               </Button>
@@ -565,6 +567,7 @@ export const DirectoryDetail = () => {
                 }
                 isLoading={linkMutation.isPending}
                 onClick={handleMigrateLink}
+                data-testid="directory-link-membership"
               >
                 Link membership
               </Button>

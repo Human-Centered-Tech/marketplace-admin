@@ -170,6 +170,7 @@ export const DirectoryCategories = () => {
             <Button
               variant="primary"
               size="small"
+              data-testid="directory-category-save"
               onClick={handleSubmit}
               isLoading={
                 createCategory.isPending || updateCategory.isPending
@@ -232,6 +233,8 @@ export const DirectoryCategories = () => {
                   <Button
                     variant="danger"
                     size="small"
+                    data-testid="directory-category-delete"
+                    data-category-id={category.id}
                     onClick={() => handleDelete(category.id)}
                     isLoading={deleteCategory.isPending}
                   >

@@ -60,6 +60,7 @@ export const CategoryEditor = ({ listing }: { listing: any }) => {
         <Button
           variant="primary"
           size="small"
+          data-testid="directory-listing-category-save"
           onClick={handleSave}
           isLoading={update.isPending}
           disabled={!dirty || isLoading || !primary}

@@ -220,6 +220,8 @@ export const DirectoryClaims = () => {
                     <Button
                       variant="secondary"
                       size="small"
+                      data-testid="claim-void"
+                      data-claim-intent-id={intent.id}
                       onClick={() => handleVoid(intent)}
                       isLoading={voidMutation.isPending}
                     >
