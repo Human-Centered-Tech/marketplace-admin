@@ -5,6 +5,7 @@ import {
   CurrencyInput,
   Label,
   Select,
+  Text,
   Textarea,
   toast,
 } from "@medusajs/ui"
@@ -222,6 +223,21 @@ export const CreateRefundForm = ({ order }: CreateRefundFormProps) => {
                     </Form.Control>
 
                     <Form.ErrorMessage />
+                    {/* Catholic Owned is the merchant of record (Brooke 9/7):
+                        the backend refund route now also claws back the
+                        seller's share and emails the buyer. Say so here so
+                        the admin knows a "keep the item" refund is complete
+                        with this one form and needs nothing from the seller. */}
+                    <Text
+                      size="small"
+                      className="text-ui-fg-subtle"
+                      data-testid="refund-effect-note"
+                    >
+                      The buyer gets this amount back on their card and receives
+                      a refund email. The seller&apos;s share of it is taken
+                      back from their payout automatically, so nothing is needed
+                      from the seller. No return is required for a refund.
+                    </Text>
                   </Form.Item>
                 )
               }}
@@ -294,6 +310,7 @@ export const CreateRefundForm = ({ order }: CreateRefundFormProps) => {
               type="submit"
               variant="primary"
               size="small"
+              data-testid="refund-submit"
               disabled={!!Object.keys(form.formState.errors || {}).length}
             >
               {t("actions.save")}
