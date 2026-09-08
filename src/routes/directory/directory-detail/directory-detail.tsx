@@ -35,6 +35,8 @@ import { FeaturedHomepageSection } from "./featured-homepage-section"
 import { TierOverrideSection } from "./tier-override"
 import { BusinessTypeSwitch } from "./business-type-switch"
 import { CompListingSection } from "./comp-listing"
+import { CoreFieldsEditor } from "./core-fields"
+import { PaymentFailureBadge, PaymentStatusSection } from "./payment-status"
 
 export const DirectoryDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -229,6 +231,10 @@ export const DirectoryDetail = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Billing trouble is the thing an operator most needs to see
+                without scrolling — the full detail is in PaymentStatusSection
+                below. */}
+            <PaymentFailureBadge listing={listing} />
             {listing.admin_hidden && (
               <Badge color="red">Hidden</Badge>
             )}
@@ -335,6 +341,15 @@ export const DirectoryDetail = () => {
         <BusinessTypeSwitch listing={listing} />
         <CompListingSection listing={listing} />
       </Container>
+
+      {/* Billing alerts (payment failed / cancelled / expired). Renders
+          nothing when the membership is healthy. */}
+      <PaymentStatusSection listing={listing} />
+
+      {/* Editable core fields, rendered from a schema so a column that is
+          currently NULL still gets an input — the "even when left empty" half
+          of Matteo's 8/18 request. Includes the slug. */}
+      <CoreFieldsEditor listing={listing} />
 
       {/* (Parish affiliations are shown + edited by the ParishAffiliations
           editor further down — the old read-only block here was removed to
