@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import {
   useDirectoryListings,
 } from "../../../hooks/api/directory"
+import { PaymentFailureBadge } from "../directory-detail/payment-status"
 
 const statusColors: Record<string, "green" | "orange" | "red" | "grey"> = {
   approved: "green",
@@ -24,7 +25,41 @@ export const DirectoryList = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const statusFilter = searchParams.get("status") || ""
   const qParam = searchParams.get("q") || ""
+  // "?billing=failed" — the listings Stripe couldn't charge and hasn't since
+  // recovered (Matteo 8/18). Server-side filter on the new payment_failed_at
+  // column, backed by a partial index, so this stays one cheap query rather
+  // than pulling every listing and filtering in the browser.
+  const billingFilter = searchParams.get("billing") || ""
   const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0)
+
+  /**
+   * Build the URL params for a state change, preserving every filter the
+   * caller isn't changing. The old setPage/setStatus each rebuilt the params
+   * from scratch and listed the ones they knew about, so adding a third filter
+   * that way would have made paging silently drop it.
+   */
+  const buildParams = (
+    overrides: Partial<{
+      status: string
+      q: string
+      billing: string
+      offset: number
+    }>
+  ) => {
+    const next = {
+      status: statusFilter,
+      q: qParam,
+      billing: billingFilter,
+      offset,
+      ...overrides,
+    }
+    const params: Record<string, string> = {}
+    if (next.status) params.status = next.status
+    if (next.q?.trim()) params.q = next.q.trim()
+    if (next.billing) params.billing = next.billing
+    if (next.offset > 0) params.offset = String(next.offset)
+    return params
+  }
 
   // Debounced search input — committed to URL after 300ms of inactivity
   // so we don't fire a request on every keystroke.
@@ -35,10 +70,9 @@ export const DirectoryList = () => {
   useEffect(() => {
     if (searchInput === qParam) return
     const t = setTimeout(() => {
-      const params: Record<string, string> = {}
-      if (statusFilter) params.status = statusFilter
-      if (searchInput.trim()) params.q = searchInput.trim()
-      setSearchParams(params)
+      // A new search resets to page 0 — the old offset points into a
+      // different result set.
+      setSearchParams(buildParams({ q: searchInput, offset: 0 }))
     }, 300)
     return () => clearTimeout(t)
   }, [searchInput])
@@ -49,6 +83,7 @@ export const DirectoryList = () => {
   }
   if (statusFilter) query.verification_status = statusFilter
   if (qParam) query.q = qParam
+  if (billingFilter === "failed") query.payment_failed = "true"
   const { listings, count, isLoading } = useDirectoryListings(query)
 
   const total = count ?? 0
@@ -57,18 +92,14 @@ export const DirectoryList = () => {
   const canPrev = offset > 0
   const canNext = offset + PAGE_SIZE < total
   const setPage = (nextOffset: number) => {
-    const params: Record<string, string> = {}
-    if (statusFilter) params.status = statusFilter
-    if (qParam) params.q = qParam
-    if (nextOffset > 0) params.offset = String(nextOffset)
-    setSearchParams(params)
+    setSearchParams(buildParams({ offset: nextOffset }))
   }
   const setStatus = (next: string) => {
-    // Reset to page 0 when status filter changes — the row counts differ.
-    const params: Record<string, string> = {}
-    if (next) params.status = next
-    if (qParam) params.q = qParam
-    setSearchParams(params)
+    // Reset to page 0 when a filter changes — the row counts differ.
+    setSearchParams(buildParams({ status: next, offset: 0 }))
+  }
+  const setBilling = (next: string) => {
+    setSearchParams(buildParams({ billing: next, offset: 0 }))
   }
 
   return (
@@ -118,6 +149,22 @@ export const DirectoryList = () => {
           >
             Rejected
           </Button>
+
+          {/* Separate axis from the verification-status filter above: a
+              listing can be approved AND failing to pay. Kept as its own
+              toggle so the two compose instead of overwriting each other. */}
+          <div className="ml-2 pl-2 border-l flex gap-2">
+            <Button
+              variant={billingFilter === "failed" ? "danger" : "secondary"}
+              size="small"
+              onClick={() =>
+                setBilling(billingFilter === "failed" ? "" : "failed")
+              }
+              data-testid="filter-payment-failed"
+            >
+              Payment failed
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -125,7 +172,9 @@ export const DirectoryList = () => {
         <div className="p-6 text-center text-ui-fg-subtle">Loading...</div>
       ) : !listings?.length ? (
         <div className="p-6 text-center text-ui-fg-subtle">
-          No listings found
+          {billingFilter === "failed"
+            ? "No listings have a failed payment right now."
+            : "No listings found"}
         </div>
       ) : (
         <>
@@ -168,6 +217,9 @@ export const DirectoryList = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Visible on every row, not just under the filter, so a
+                      failing member is obvious while browsing normally. */}
+                  <PaymentFailureBadge listing={listing} />
                   <Badge
                     color={
                       tierColors[listing.subscription_tier] || "grey"
